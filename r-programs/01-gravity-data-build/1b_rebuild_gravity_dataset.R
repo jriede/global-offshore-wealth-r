@@ -30,6 +30,8 @@ cpis <- read_csv(
 cpis <- cpis %>%
   # keep total equity and total debt liabilities
   filter(`Indicator Code` %in% c("I_L_D_T_T_BP6_DV_USD", "I_L_E_T_T_BP6_DV_USD")) %>%
+  
+  # rename indicator code column 
   mutate(
     `Indicator Name` = case_when(
       `Indicator Code` == "I_L_D_T_T_BP6_DV_USD" ~ "debt",
@@ -37,7 +39,10 @@ cpis <- cpis %>%
       TRUE ~ `Indicator Name`
     )
   ) %>%
+  # filter out "Status" attribute
   filter(`Attribute` == "Value") %>%
+  
+  # select specific columns
   select(
     `Country Name`, `Country Code`, `Indicator Name`,
     `Counterpart Country Name`, `Counterpart Country Code`, `2001`, `2002`, `2003`, 
@@ -45,6 +50,8 @@ cpis <- cpis %>%
     `2014`, `2015`, `2016`, `2017`, `2018`, `2019`, `2020`, `2021`
     #v12:v32
   ) %>%
+  
+  # years in columns -> one year per row
   pivot_longer(
     cols = starts_with("20"),
     names_to = "year",
@@ -53,6 +60,7 @@ cpis <- cpis %>%
  # mutate(
   #  year = as.integer(str_remove(year, "^v")) + 1989
   #) %>%
+  
   filter(!`Country Code` %in% c(1, 31)) %>%
   mutate(v = as.numeric(v)) %>%
   pivot_wider(
@@ -306,6 +314,12 @@ for (v in c("dist", "comlang_off", "col45", "pop_o", "pop_d",
 
 write_dta(gravity_vars, file.path(work, "gravity_vars.dta"))
 
+# ##### convert 
+gravity_vars$year <- as.character(gravity_vars$year)
+gravity_vars$source <- as.character(gravity_vars$source)
+gravity_vars$host <- as.character(gravity_vars$host)
+############
+
 # Merge CPIS and gravity vars
 data_gravity_update <- gravity_vars %>%
   full_join(cpis_merge, by = c("year", "source", "host"))
@@ -316,11 +330,21 @@ write_dta(data_gravity_update, file.path(work, "data_gravity_update.dta"))
 # 3. merge GDP
 # ------------------------------------------------------------------------------
 
+###
+gdp <- gdp %>%
+  rename(
+  gdp_current = `gdp_current_dollars`,
+  ) 
+####
+
 gdp <- read_dta(file.path(work, "iso_ifscode.dta")) %>%
   mutate(iso3 = if_else(iso3 == "XXK", "XKX", iso3)) %>%
   inner_join(
     read_dta(file.path(raw, "dta", "assembled_gdp_series_090623.dta")),
     by = "iso3"
+  ) %>%
+  rename(
+    gdp_current = `gdp_current_dollars`
   ) %>%
   select(ifscode, gdp_current, year, iso3) %>%
   rename(
@@ -340,6 +364,8 @@ gdp <- read_dta(file.path(work, "iso_ifscode.dta")) %>%
     gdp_current = na_if(gdp_current, 0)
   )
 
+##### already in, no need to add
+
 # Add GDP for Netherlands Antilles
 gdp_353 <- read_dta(file.path(work, "ewn_gdp.dta")) %>%
   filter(source == 353) %>%
@@ -352,12 +378,23 @@ gdp <- gdp %>%
     iso3_source = if_else(source == 353, "ANT", iso3_source)
   ) %>%
   select(-gdp_us)
+########
 
 gdp_host <- gdp %>%
   rename(
     host = source,
     iso3_host = iso3_source
   )
+
+#####
+# ##### convert 
+gdp_host$host <- as.character(gdp_host$host)
+gdp_host$year <- as.character(gdp_host$year)
+gdp$source <- as.character(gdp$source)
+gdp$year <- as.character(gdp$year)
+############
+
+######
 
 data_gravity_update <- data_gravity_update %>%
   left_join(
@@ -377,24 +414,26 @@ write_dta(data_gravity_update, file.path(work, "data_gravity_update.dta"))
 # 4. merge population from World Bank WDI
 # ------------------------------------------------------------------------------
 
+
 pop_wdi <- read_csv(
   file.path(raw, "API_SP.POP.TOTL_DS2_en_csv_v2_4902028",
             "API_SP.POP.TOTL_DS2_en_csv_v2_4902028.csv"),
   show_col_types = FALSE
 ) %>%
-  select(v1, v2, v46:v66) %>%
+  #select(v1, v2, v46:v66) %>%
+  select(1:2, 46:66) %>%
   rename(
-    country_wdi = v1,
-    iso3 = v2
+    country_wdi = `Country Name`,
+    iso3 = `Country Code`
   ) %>%
-  slice(-1, -2) %>%
+  #slice(-1, -2) %>%
   pivot_longer(
-    cols = starts_with("v"),
+    cols = starts_with("20"),
     names_to = "year",
     values_to = "pop_wdi"
   ) %>%
   mutate(
-    year = as.integer(str_remove(year, "^v")) + 1955,
+  #  year = as.integer(str_remove(year, "^v")) + 1955,
     pop_wdi = as.numeric(pop_wdi) * 1000,
     iso3 = if_else(iso3 == "XKX", "XXK", iso3)
   ) %>%
@@ -415,16 +454,26 @@ pop_source <- pop_wdi %>%
   rename(pop_wdi_source = pop_wdi) %>%
   select(-country_wdi)
 
-data_gravity_update <- read_dta(file.path(work, "data_gravity_update.dta")) %>%
-  left_join(pop_source, by = c("year", "source")) %>%
+### convert ...
+pop_source$source <- as.character(pop_source$source)
+pop_source$year <- as.character(pop_source$year)
+
+data_gravity_update <- read_dta(file.path(work, "data_gravity_update.dta"))
+
+data_gravity_update <- data_gravity_update %>%
+  left_join(pop_source, by = c("year", "source"))
+
+data_gravity_update <- data_gravity_update %>%
   mutate(
-    pop_wdi_source = pop_wdi_source / 1e6,
+    pop_wdi_source = pop_wdi_source / 1000000,
     pop_o = if_else(is.na(pop_o), pop_wdi_source, pop_o)
   ) %>%
   rename(pop_source = pop_o) %>%
   select(-pop_d, -starts_with("pop_wdi"))
 
+
 # Complete population data for jurisdictions with available GDP
+#### omitted for now, FIXME
 data_gravity_update <- data_gravity_update %>%
   mutate(
     pop_source = if_else(source == 312, 15, pop_source),                         # Anguilla
@@ -433,10 +482,12 @@ data_gravity_update <- data_gravity_update %>%
   )
 
 # Guernsey
-pop_guernsey <- read_excel(
+pop_guernsey2 <- read_excel(
   file.path(raw, "Guernsey_Historic_population_and_employment_data_(for_website).xlsx")
 ) %>%
-  select(A, B) %>%
+  select(1:2) %>%
+  rename(A = year) %>%
+  rename(B = `Female and Male`) %>%
   filter(B != "") %>%
   mutate(
     A = as.numeric(A),
@@ -449,9 +500,48 @@ pop_guernsey <- read_excel(
   ) %>%
   rename(year = A, pop_guernsey = B)
 
+pop_guernsey2$year <- as.character(pop_guernsey2$year)
+pop_guernsey2$source <- as.character(pop_guernsey2$source)
+
+####
 data_gravity_update <- data_gravity_update %>%
-  left_join(pop_guernsey, by = c("year", "source")) %>%
-  mutate(pop_source = if_else(source == 113, pop_guernsey, pop_source)) %>%
+  left_join(pop_guernsey2, by = c("year", "source")) %>%
+  mutate(
+    pop_source = if_else(source == 113, pop_guernsey, pop_source)
+  )
+
+# Wir bauen eine Funktion, die Fehler einfach "schluckt"
+safe_approx_ultimate <- function(y, x) {
+  tryCatch({
+    # Versuch der Interpolation
+    # Wir fügen noch einen Check ein, ob y überhaupt ein Vektor ist
+    if (sum(!is.na(y)) < 2) {
+      return(as.numeric(y))
+    }
+    zoo::na.approx(y, x = x, na.rm = FALSE, rule = 2)
+  }, 
+  error = function(e) {
+    # Falls DOCH ein Fehler auftritt (wie in Gruppe 187), 
+    # gib einfach die Originaldaten als Zahl zurück
+    return(as.numeric(y))
+  })
+}
+
+# Anwendung
+data_gravity_update <- data_gravity_update %>%
+  group_by(source) %>%
+  mutate(pop_epo = safe_approx_ultimate(pop_source, year)) %>%
+  ungroup()
+
+
+  ######
+
+######## nicht ausführen, s.o.
+data_gravity_update <- data_gravity_update %>%
+  left_join(pop_guernsey2, by = c("year", "source")) %>%
+  mutate(
+    pop_source = if_else(source == 113, pop_guernsey, pop_source)
+  ) %>%
   group_by(source) %>%
   arrange(year, .by_group = TRUE) %>%
   mutate(
@@ -460,6 +550,7 @@ data_gravity_update <- data_gravity_update %>%
   ) %>%
   ungroup() %>%
   select(-pop_guernsey)
+#########
 
 # Fill gaps for Cook Islands and Taiwan
 data_gravity_update <- data_gravity_update %>%
@@ -473,16 +564,24 @@ data_gravity_update <- data_gravity_update %>%
 pop_jersey <- read_csv(
   file.path(raw, "Jersey_total-population-annual-change-natural-growth-net-migration-per-year-with-midyear.csv"),
   show_col_types = FALSE
-) %>%
-  select(year, endofyearpopulationestimate) %>%
-  filter(year > 2000) %>%
-  rename(pop_jersey = endofyearpopulationestimate) %>%
+) 
+
+pop_jersey <- pop_jersey %>%
+  select(Year, `End of year population estimate`) %>%
+  filter(Year > 2000) %>%
+  rename(pop_jersey = `End of year population estimate`) %>%
   mutate(
     pop_jersey = pop_jersey / 1e6,
     source = 117
   )
 
+pop_jersey <- pop_jersey %>%
+  rename(year = Year) 
+pop_jersey$year <- as.character(pop_jersey$year)
+pop_jersey$source <- as.character(pop_jersey$source)
+
 data_gravity_update <- data_gravity_update %>%
+  #left_join(pop_jersey, by = c("Year", "source")) %>%
   left_join(pop_jersey, by = c("year", "source")) %>%
   mutate(pop_source = if_else(source == 117, pop_jersey, pop_source)) %>%
   select(-pop_jersey)
@@ -563,6 +662,7 @@ data_gravity_update <- data_gravity_update %>%
     host = recode_zucman(host)
   )
 
+
 missing_gravity_vars <- read_dta(file.path(raw, "Zucman", "data_gravity.dta")) %>%
   distinct(source, host, .keep_all = TRUE) %>%
   rename(
@@ -571,9 +671,12 @@ missing_gravity_vars <- read_dta(file.path(raw, "Zucman", "data_gravity.dta")) %
     col45_2013 = col45,
     comlang_off_2013 = comlang_off,
     lat_source_2013 = lat_source,
-    landlocked_source_2013 = landlocked
+    landlocked_source_2013 = landlocked_source
   ) %>%
-  select(source, host, industrial, ends_with("_2013"), sifc)
+  select(source, host, industrial, ends_with("_2013"), sifc_source)
+
+missing_gravity_vars$source <- as.character(missing_gravity_vars$source)
+missing_gravity_vars$host <- as.character(missing_gravity_vars$host)
 
 data_gravity_update <- data_gravity_update %>%
   left_join(missing_gravity_vars, by = c("source", "host"))
@@ -621,6 +724,13 @@ gravity_355_host <- data_gravity_update %>%
   mutate(host = 355) %>%
   rename_with(~ paste0(.x, "_355_host"),
               .cols = c(comlang_off, col45, industrial, dist, logdist, gap_lon))
+#####
+gravity_355_source$host <- as.character(gravity_355_source$host)
+gravity_355_source$source <- as.character(gravity_355_source$source)
+
+gravity_355_host$host <- as.character(gravity_355_host$host)
+gravity_355_host$source <- as.character(gravity_355_host$source)
+#####
 
 data_gravity_update <- data_gravity_update %>%
   left_join(gravity_355_source %>% select(-year), by = c("source", "host")) %>%
@@ -683,6 +793,11 @@ gravity_967_host <- data_gravity_update %>%
   mutate(host = 967) %>%
   rename_with(~ paste0(.x, "_967_host"),
               .cols = c(comlang_off, col45, industrial, dist, logdist, gap_lon))
+
+gravity_967_source$source <- as.character(gravity_967_source$source)
+gravity_967_source$host <- as.character(gravity_967_source$host)
+gravity_967_host$source <- as.character(gravity_967_host$source)
+gravity_967_host$host <- as.character(gravity_967_host$host)
 
 data_gravity_update <- data_gravity_update %>%
   left_join(gravity_967_source %>% select(-year), by = c("source", "host")) %>%
@@ -758,21 +873,29 @@ data_gravity_update <- fill_mean_by(
     "dist", "industrial", "loggap_gdp", "loggap_gdppc")
 )
 
+#####
+foo <- read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta"))
+foo$ifscode <- as.character(foo$ifscode)
+#########
+
 # Merge indicator for CPIS-reporting countries
 cpis_source_harmonised <- read_dta(file.path(work, "cpis_source.dta")) %>%
   rename(ifscode = source) %>%
-  left_join(read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta")),
+  # left_join(read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta")),
+  left_join(foo,
             by = "ifscode") %>%
   filter(!is.na(our_code)) %>%
   select(our_code, cpis) %>%
   rename(source = our_code)
+
+cpis_source_harmonised$source <- as.character(cpis_source_harmonised$source)
 
 data_gravity_update <- data_gravity_update %>%
   left_join(cpis_source_harmonised, by = "source")
 
 # Harmonise country names
 matching <- read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta"))
-
+matching$our_code <- as.character(matching$our_code)
 data_gravity_update <- data_gravity_update %>%
   select(-our_code) %>%
   rename(our_code = source) %>%
@@ -788,7 +911,7 @@ data_gravity_update <- data_gravity_update %>%
   filter(!is.na(country)) %>%
   rename(host = our_code) %>%
   mutate(hostname = country) %>%
-  select(-country, -iso3, -matches("^_merge$"))
+  select(-country, -iso3_host, -matches("^_merge$"))
 
 # Keep final variables
 data_gravity_update <- data_gravity_update %>%

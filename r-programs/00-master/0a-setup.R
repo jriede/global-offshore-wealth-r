@@ -9,7 +9,7 @@
 # ------------------------------ PATHS -----------------------------------------
 
 # Main directory
-root <- "/Users/jule/Library/CloudStorage/Dropbox/UNI/WiWi/BSc/data/global-offshore-wealth-2001-2021"
+root <- "/Users/jule/Library/CloudStorage/Dropbox/UNI/WiWi/BSc/global-offshore-wealth-r"
 
 # Code files path
 do_path <- file.path(root, "r-programs")
@@ -47,5 +47,5 @@ zip2 <- file.path(raw, "Gravity_dta_V202211", "Gravity_V202211.zip")
 unzip(zip2, overwrite = TRUE)
 
 # Delete the zip file after extraction
-file.remove(zip2)
+#file.remove(zip2)
 

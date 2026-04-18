@@ -6,7 +6,7 @@
 #
 #===============================================================================
 # Clear workspace
-rm(list = ls())
+# rm(list = ls())
 
 # Turn off scientific/logging-like clutter
 options(stringsAsFactors = FALSE)

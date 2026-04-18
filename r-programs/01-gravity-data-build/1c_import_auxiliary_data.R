@@ -24,7 +24,8 @@ matching_iso_ifscode <- read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta
 # import aggregates from CPIS data
 # ------------------------------------------------------------------------------
 
-for (asset in c("eq", "debt")) {
+
+#for (asset in c("eq", "debt")) {
 
   df <- read_excel(
     file.path(raw, paste0("IMF_2023_Table_15_All_Economies_Reported_Por_", asset, ".xlsx")),
@@ -33,9 +34,11 @@ for (asset in c("eq", "debt")) {
   )
 
   # drop A and first 3 rows
+  # -jlenke drop first 2 rows
   df <- df %>%
-    select(-1) %>%
-    slice(-(1:3))
+    #select(-1) %>%
+    #slice(-(1:3))
+    slice(-(1:2))
 
   # rename columns C:AG using first row values after replacing ". " with "_"
   name_idx <- 3:ncol(df)
