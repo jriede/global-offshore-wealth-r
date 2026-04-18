@@ -25,7 +25,7 @@ matching_iso_ifscode <- read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta
 # ------------------------------------------------------------------------------
 
 
-#for (asset in c("eq", "debt")) {
+for (asset in c("eq", "debt")) {
 
   df <- read_excel(
     file.path(raw, paste0("IMF_2023_Table_15_All_Economies_Reported_Por_", asset, ".xlsx")),
@@ -41,7 +41,7 @@ matching_iso_ifscode <- read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta
     slice(-(1:2))
 
   # rename columns C:AG using first row values after replacing ". " with "_"
-  name_idx <- 3:ncol(df)
+  name_idx <- 2:ncol(df)
   new_names <- names(df)
   first_row <- df[1, ]
 
@@ -54,7 +54,7 @@ matching_iso_ifscode <- read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta
 
   df <- df %>%
     slice(-1) %>%
-    rename(B = 2) %>%
+    rename(B = 1) %>%
     pivot_longer(
       cols = starts_with("DEC_"),
       names_to = "year",
@@ -68,10 +68,12 @@ matching_iso_ifscode <- read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta
 
   # first merge on country
   m1 <- df %>%
-    left_join(matching_iso_ifscode, by = "country") %>%
+    left_join(matching_iso_ifscode, by = "country")
+  
+  m1 <- m1 %>%
     rename(
-      our_code_orig = our_code,
-      country_v2 = country
+      our_code_orig = our_code
+#      country_v2 = country
     ) %>%
     select(-ifscode)
 
@@ -99,11 +101,12 @@ adj_df <- read_excel(
   file.path(raw, "IMF_2023_Table_15_All_Economies_Reported_Por_eq.xlsx"),
   sheet = "Table 15",
   col_names = FALSE
-) %>%
-  select(-1) %>%
-  slice(-(1:3))
+)
+adj_df <- adj_df %>%
+  #select(-1) %>%
+  slice(-(1:2))
 
-name_idx <- 3:ncol(adj_df)
+name_idx <- 2:ncol(adj_df)
 first_row <- adj_df[1, ]
 new_names <- names(adj_df)
 for (j in name_idx) {
@@ -114,8 +117,8 @@ for (j in name_idx) {
 names(adj_df) <- new_names
 
 adjustfactor_cpis <- adj_df %>%
-  slice(-1) %>%
-  rename(B = 2) %>%
+  #slice(-1) %>%
+  rename(B = 1) %>%
   filter(B %in% c("SEFER + SSIO (**)", "Value of Total Investment")) %>%
   select(-matches("^DEC_200"), -matches("^DEC_2010$"), -matches("^DEC_2011$"), -matches("^DEC_2012$")) %>%
   mutate(across(matches("^(DEC|JUN)_"), as.numeric)) %>%
@@ -143,6 +146,7 @@ adjustfactor_cpis <- adjustfactor_cpis %>%
   )
 
 write_dta(adjustfactor_cpis, file.path(work, "adjustfactor_cpis.dta"))
+##################
 
 # total liabilities
 for (liab in c("eq", "debt")) {
@@ -178,8 +182,8 @@ for (liab in c("eq", "debt")) {
   m1 <- df %>%
     left_join(matching_iso_ifscode, by = "country") %>%
     rename(
-      our_code_orig = our_code,
-      country_v2 = country
+      our_code_orig = our_code
+      #country_v2 = country
     ) %>%
     select(-ifscode, -iso3)
 
@@ -258,16 +262,12 @@ for (j in seq_along(tic)) {
     nm[j] <- paste0(nm[j], "_", suffix)
   }
 }
+
 names(tic) <- nm
-tic <- tic[-2, ]
 
 # strip Jun / Mar
 tic <- tic %>%
-  mutate(across(everything(), ~ ifelse(
-    is.character(.x),
-    str_replace_all(str_replace_all(.x, "Jun ", ""), "Mar ", ""),
-    .x
-  )))
+  mutate(across(everything(), ~ ifelse(row_number() == 1, str_replace(., "Jun ", ""), .)))
 
 # second renaming pass from row 1
 nm <- names(tic)
@@ -285,6 +285,7 @@ TIC_sub <- tic
 
 tic_list <- list()
 
+
 for (i in c(2000, 2002:2021)) {
   sub <- TIC_sub %>%
     select(countryid, country, matches(paste0("_", i, "$"))) %>%
@@ -297,6 +298,8 @@ for (i in c(2000, 2002:2021)) {
 
   tic_list[[as.character(i)]] <- sub
 }
+
+
 
 data_TIC_update <- bind_rows(tic_list) %>%
   mutate(
