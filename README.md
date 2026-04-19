@@ -6,3 +6,4 @@ Files too large and therefor not included in the repository are
 * raw-data/Gravity_dta_V202211/Gravity_V202211.dta
 * raw-data/Gravity_dta_V202211/Gravity_V202211.zip and
 * work-data/data_gravity_update.dta
+* work-data/data_TIC_update.dta
