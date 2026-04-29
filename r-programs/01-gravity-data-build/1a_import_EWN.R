@@ -77,11 +77,12 @@ ewn <- ewn %>%
 
 # Save main dataset
 saveRDS(ewn, file = file.path(work, "data_ewn_update.rds"))
+write_dta(ewn, file.path(work, "data_ewn_update.dta"))
 
 # Keep GDP subset and save
 ewn_gdp <- ewn %>%
   select(country, source, year, gdp_us)
 
 saveRDS(ewn_gdp, file = file.path(work, "ewn_gdp.rds"))
-
+write_dta(ewn_gdp, file.path(work, "ewn_gdp.dta"))
 # ------------------------------------------------------------------------------

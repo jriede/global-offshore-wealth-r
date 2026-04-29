@@ -33,7 +33,7 @@ source(file.path(do_path, "01-gravity-data-build", "1b_rebuild_gravity_dataset.R
 
 # Save dataset
 # Assumes an object like data_gravity_update exists after sourcing
-haven::write_dta(data_gravity_update, file.path(work, "data_gravity_update.dta"))
+haven::write_dta(data_gravity_update, file.path(work, "data_gravity_update2.dta"))
 
 # Import other data sources
 source(file.path(do_path, "01-gravity-data-build", "1c_import_auxiliary_data.R"))

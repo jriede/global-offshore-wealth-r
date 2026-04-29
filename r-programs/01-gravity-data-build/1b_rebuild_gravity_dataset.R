@@ -330,13 +330,6 @@ write_dta(data_gravity_update, file.path(work, "data_gravity_update.dta"))
 # 3. merge GDP
 # ------------------------------------------------------------------------------
 
-###
-gdp <- gdp %>%
-  rename(
-  gdp_current = `gdp_current_dollars`,
-  ) 
-####
-
 gdp <- read_dta(file.path(work, "iso_ifscode.dta")) %>%
   mutate(iso3 = if_else(iso3 == "XXK", "XKX", iso3)) %>%
   inner_join(
@@ -484,11 +477,18 @@ data_gravity_update <- data_gravity_update %>%
 # Guernsey
 pop_guernsey2 <- read_excel(
   file.path(raw, "Guernsey_Historic_population_and_employment_data_(for_website).xlsx")
-) %>%
-  select(1:2) %>%
+) 
+
+pop_guernsey2 <- pop_guernsey2%>%
+  select(1:2) 
+
+pop_guernsey2 <- pop_guernsey2 %>%
   rename(A = year) %>%
-  rename(B = `Female and Male`) %>%
-  filter(B != "") %>%
+  rename(B = `Female and Male`)
+
+pop_guernsey2 <- pop_guernsey2 %>%
+  #filter(B != "") %>%
+  filter(trimws(B) != "") %>%
   mutate(
     A = as.numeric(A),
     B = as.numeric(B)
@@ -621,13 +621,14 @@ data_gravity_update <- data_gravity_update %>%
 # ------------------------------------------------------------------------------
 # 6. complete gravity dataset
 # ------------------------------------------------------------------------------
-
+data
 # balance panel
 data_gravity_update <- data_gravity_update %>%
   complete(source, host, year)
 
 # Harmonise country codes with Zucman (2013)
 recode_zucman <- function(x) {
+  x <- as.numeric(x)
   case_when(
     x == 91  ~ 9998,
     x == 93  ~ 9999,
@@ -656,6 +657,8 @@ recode_zucman <- function(x) {
   )
 }
 
+#####
+
 data_gravity_update <- data_gravity_update %>%
   mutate(
     source = recode_zucman(source),
@@ -675,8 +678,8 @@ missing_gravity_vars <- read_dta(file.path(raw, "Zucman", "data_gravity.dta")) %
   ) %>%
   select(source, host, industrial, ends_with("_2013"), sifc_source)
 
-missing_gravity_vars$source <- as.character(missing_gravity_vars$source)
-missing_gravity_vars$host <- as.character(missing_gravity_vars$host)
+#missing_gravity_vars$source <- as.character(missing_gravity_vars$source)
+#missing_gravity_vars$host <- as.character(missing_gravity_vars$host)
 
 data_gravity_update <- data_gravity_update %>%
   left_join(missing_gravity_vars, by = c("source", "host"))
@@ -730,6 +733,9 @@ gravity_355_source$source <- as.character(gravity_355_source$source)
 
 gravity_355_host$host <- as.character(gravity_355_host$host)
 gravity_355_host$source <- as.character(gravity_355_host$source)
+
+data_gravity_update$source <- as.character(data_gravity_update$source)
+data_gravity_update$host <- as.character(data_gravity_update$host)
 #####
 
 data_gravity_update <- data_gravity_update %>%
@@ -925,3 +931,4 @@ data_gravity_update <- data_gravity_update %>%
 
 # Final save
 write_dta(data_gravity_update, file.path(work, "data_gravity_update.dta"))
+write_dta(data_gravity_update_copy, file.path(work, "data_gravity_update_copy.dta"))
