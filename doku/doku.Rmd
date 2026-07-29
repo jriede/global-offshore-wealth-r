@@ -1,0 +1,44 @@
+---
+title: "Doku: GOW-R"
+author: "Dr. Julia Lenke"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Struktur
+~~~
+- r-programs
+ |- 00-master
+ |- 01-gravity-data-build
+ |- 02-bilateral-portfolio-assets
+ |- 03-produce-output-tables
+ |- 04-bis-deposits-build
+ |- 05-swiss2-fiduciary-build
+ |- 06-offhore-wealth-analysis
+- raw-data
+- work-data
+~~~
+
+# Data Import
+
+## 00-master
+
+### 0a-setup
+[00-master/0a-setup.R](../r-programs/00-master/0a-setup.R)
+
+Defines the following PATHS:
+
+* root (main directory)
+* do_path (root/r-programs)
+* work (root/work-data)
+* raw (root/raw-data)
+* fig (root/figures)
+* tables (root/tables)
+
+
+### 0b-run
+
+## 01-gravity-data-build

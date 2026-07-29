@@ -10,7 +10,7 @@
 
 # Turn off scientific/logging-like clutter
 options(stringsAsFactors = FALSE)
-graphics.off()
+#graphics.off()
 
 # Stata's "set memory" is not needed in modern R
 # set more off / cap log close have no direct equivalent
