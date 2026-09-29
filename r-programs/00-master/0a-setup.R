@@ -12,13 +12,16 @@
 root <- "/Users/jule/Library/CloudStorage/Dropbox/UNI/WiWi/BSc/global-offshore-wealth-r"
 
 # Code files path
-do_path <- file.path(root, "r-programs")
+do <- file.path(root, "r-programs")
 
 # Created data path
 work <- file.path(root, "work-data")
 
+# Created data path
+work2 <- file.path(root, "../gow01-21/work-data")
+
 # Raw data path
-raw <- file.path(root, "raw-data")
+raw <- file.path(root, "../gow01-21/raw-data")
 
 # Figures path
 fig <- file.path(root, "figures")
@@ -27,24 +30,83 @@ fig <- file.path(root, "figures")
 tables <- file.path(root, "tables")
 
 
+# ------------ SWITCH: use original (dta) or replication (rds) files? ----------
+data_mode <- "r"
+#data_mode <- "stata"
+
+read_work_data <- function(filename) {
+  
+  if (data_mode == "stata") {
+    path <- file.path(work2, paste0(filename, ".dta"))
+    reader <- haven::read_dta
+    
+  } else if (data_mode == "r") {
+    path <- file.path(work, paste0(filename, ".rds"))
+    reader <- readRDS
+    
+  } else {
+    stop("data_mode must be either 'stata' or 'r'.")
+  }
+  
+  if (!file.exists(path)) {
+    stop("File not found: ", path)
+  }
+  
+  message("Reading: ", path)
+  
+  reader(path)
+}
+
+# ------ berechnung der Abweichungen zwischen der R und der STATA implementation
+
+replication_metrics <- function(original, replicated) {
+  
+  valid <- !is.na(original) & !is.na(replicated)
+  
+  original <- original[valid]
+  replicated <- replicated[valid]
+  
+  diff <- replicated - original
+  
+  relative <- rep(NA_real_, length(diff))
+  nonzero <- original != 0
+  
+  relative[nonzero] <- 100 * diff[nonzero] /
+    original[nonzero]
+  
+  tibble::tibble(
+    n = length(diff),
+    MAE = mean(abs(diff)),
+    MAPE = if (any(nonzero)) {
+      mean(abs(relative[nonzero]))
+    } else {
+      NA_real_
+    },
+    max_absolute_deviation = max(abs(diff)),
+    mean_signed_deviation = mean(diff)
+  )
+}
+
+# -----
+
 # ----------------------- EXTRACT ZIPPED DATA FILE -----------------------------
 
 # Set working directory to the Zucman raw-data folder
-setwd(file.path(raw, "Zucman"))
+#setwd(file.path(raw, "Zucman"))
 
-# Unzip data_gravity.zip into the current directory, overwriting existing files
-zip1 <- file.path(raw, "Zucman", "data_gravity.zip")
-unzip(zip1, overwrite = TRUE)
+# Unzip data_gravity.zip into the current directory
+#zip1 <- file.path(raw, "Zucman", "data_gravity.zip")
+#unzip(zip1)
 
 # Delete the zip file after extraction
 #file.remove(zip1)
 
 # Set working directory to the Gravity_dta_V202211 folder
-setwd(file.path(raw, "Gravity_dta_V202211"))
+#setwd(file.path(raw, "Gravity_dta_V202211"))
 
-# Unzip Gravity_V202211.zip into the current directory, overwriting existing files
-zip2 <- file.path(raw, "Gravity_dta_V202211", "Gravity_V202211.zip")
-unzip(zip2, overwrite = TRUE)
+# Unzip Gravity_V202211.zip into the current directory
+#zip2 <- file.path(raw, "Gravity_dta_V202211", "Gravity_V202211.zip")
+#unzip(zip2)
 
 # Delete the zip file after extraction
 #file.remove(zip2)

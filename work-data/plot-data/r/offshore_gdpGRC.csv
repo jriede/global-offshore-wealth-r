@@ -1,0 +1,23 @@
+year,iso3,country_name,indicator,label,unit,value,gdp,regionname,incomelevelname,gdp_used,ratio_offshore_GDP
+2001,GRC,Greece,total,total offshore wealth,USD Bn,59.88080557095937,135159996416,Europe & Central Asia,High income,135159996416,44.30364542675497
+2002,GRC,Greece,total,total offshore wealth,USD Bn,61.67264182423512,153151995904,Europe & Central Asia,High income,153151995904,40.26891158695267
+2003,GRC,Greece,total,total offshore wealth,USD Bn,70.95515076804922,200613003264,Europe & Central Asia,High income,200613003264,35.36916830594207
+2004,GRC,Greece,total,total offshore wealth,USD Bn,79.16396365718921,238822998016,Europe & Central Asia,High income,238822998016,33.14754622244781
+2005,GRC,Greece,total,total offshore wealth,USD Bn,67.13771631945644,245920006144,Europe & Central Asia,High income,245920006144,27.300632173920626
+2006,GRC,Greece,total,total offshore wealth,USD Bn,60.88036758380948,271253995520,Europe & Central Asia,High income,271253995520,22.44404454470816
+2007,GRC,Greece,total,total offshore wealth,USD Bn,67.46178695934894,316249997312,Europe & Central Asia,High income,316249997312,21.331790524188925
+2008,GRC,Greece,total,total offshore wealth,USD Bn,52.267324995504325,352866009088,Europe & Central Asia,High income,352866009088,14.812230038986145
+2009,GRC,Greece,total,total offshore wealth,USD Bn,65.94146689014893,328155987968,Europe & Central Asia,High income,328155987968,20.09454933261166
+2010,GRC,Greece,total,total offshore wealth,USD Bn,75.43419225425143,297367994368,Europe & Central Asia,High income,297367994368,25.367286891305397
+2011,GRC,Greece,total,total offshore wealth,USD Bn,89.5097340508848,282946011136,Europe & Central Asia,High income,282946011136,31.63491638970705
+2012,GRC,Greece,total,total offshore wealth,USD Bn,115.10597456209153,242182995968,Europe & Central Asia,High income,242182995968,47.52851210796841
+2013,GRC,Greece,total,total offshore wealth,USD Bn,108.5931626252903,238910996480,Europe & Central Asia,High income,238910996480,45.453396547354394
+2014,GRC,Greece,total,total offshore wealth,USD Bn,110.6600282875442,235519000576,Europe & Central Asia,High income,235519000576,46.985605414810315
+2015,GRC,Greece,total,total offshore wealth,USD Bn,99.12086923014196,195702996992,Europe & Central Asia,High income,195702996992,50.64862099898952
+2016,GRC,Greece,total,total offshore wealth,USD Bn,76.91614592230384,193097007104,Europe & Central Asia,High income,193097007104,39.83290423599244
+2017,GRC,Greece,total,total offshore wealth,USD Bn,91.0136843530737,199772995584,Europe & Central Asia,High income,199772995584,45.558552139147615
+2018,GRC,Greece,total,total offshore wealth,USD Bn,86.38003423878476,212145995776,Europe & Central Asia,High income,212145995776,40.71725884941586
+2019,GRC,Greece,total,total offshore wealth,USD Bn,110.44814169605854,205279002624,Europe & Central Asia,High income,205279002624,53.80391578497742
+2020,GRC,Greece,total,total offshore wealth,USD Bn,131.56536469704324,188774006784,Europe & Central Asia,High income,188774006784,69.69464013527225
+2021,GRC,Greece,total,total offshore wealth,USD Bn,145.44049572856963,215016996864,Europe & Central Asia,High income,215016996864,67.64139479659923
+2022,GRC,Greece,total,total offshore wealth,USD Bn,138.85949414018253,219237007360,Europe & Central Asia,High income,219237007360,63.33761613164474

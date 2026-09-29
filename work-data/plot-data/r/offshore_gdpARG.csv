@@ -1,0 +1,23 @@
+year,iso3,country_name,indicator,label,unit,value,gdp,regionname,incomelevelname,gdp_used,ratio_offshore_GDP
+2001,ARG,Argentina,total,total offshore wealth,USD Bn,49.43617403722379,268696748032,Latin America & Caribbean,Upper middle income,268696748032,18.39850106088231
+2002,ARG,Argentina,total,total offshore wealth,USD Bn,53.951319446405876,97724006400,Latin America & Caribbean,Upper middle income,97724006400,55.207846499430744
+2003,ARG,Argentina,total,total offshore wealth,USD Bn,67.26315917816785,127586975744,Latin America & Caribbean,Upper middle income,127586975744,52.71945571711776
+2004,ARG,Argentina,total,total offshore wealth,USD Bn,82.57884230764485,164657938432,Latin America & Caribbean,Upper middle income,164657938432,50.151752836227836
+2005,ARG,Argentina,total,total offshore wealth,USD Bn,96.19852952449011,198737100800,Latin America & Caribbean,Upper middle income,198737100800,48.404917419671904
+2006,ARG,Argentina,total,total offshore wealth,USD Bn,113.92667038007446,232557264896,Latin America & Caribbean,Upper middle income,232557264896,48.988652507167494
+2007,ARG,Argentina,total,total offshore wealth,USD Bn,137.82246436584663,287530516480,Latin America & Caribbean,Upper middle income,287530516480,47.93316064433573
+2008,ARG,Argentina,total,total offshore wealth,USD Bn,97.19785674714026,361558048768,Latin America & Caribbean,Upper middle income,361558048768,26.883057113052672
+2009,ARG,Argentina,total,total offshore wealth,USD Bn,97.01275122439496,332976488448,Latin America & Caribbean,Upper middle income,332976488448,29.135015411019076
+2010,ARG,Argentina,total,total offshore wealth,USD Bn,85.26133051655003,423627423744,Latin America & Caribbean,Upper middle income,423627423744,20.126489867680014
+2011,ARG,Argentina,total,total offshore wealth,USD Bn,76.50395969045722,530158190592,Latin America & Caribbean,Upper middle income,530158190592,14.430402292762704
+2012,ARG,Argentina,total,total offshore wealth,USD Bn,74.96560691570242,545982382080,Latin America & Caribbean,Upper middle income,545982382080,13.73040767911044
+2013,ARG,Argentina,total,total offshore wealth,USD Bn,65.40525202172424,552025128960,Latin America & Caribbean,Upper middle income,552025128960,11.848238167154804
+2014,ARG,Argentina,total,total offshore wealth,USD Bn,58.1170174497982,526319681536,Latin America & Caribbean,Upper middle income,526319681536,11.042151659651175
+2015,ARG,Argentina,total,total offshore wealth,USD Bn,46.439385944090034,594749292544,Latin America & Caribbean,Upper middle income,594749292544,7.808228866561352
+2016,ARG,Argentina,total,total offshore wealth,USD Bn,33.70855506735401,557532315648,Latin America & Caribbean,Upper middle income,557532315648,6.0460271308535285
+2017,ARG,Argentina,total,total offshore wealth,USD Bn,36.24963160755541,643628400640,Latin America & Caribbean,Upper middle income,643628400640,5.63207459016882
+2018,ARG,Argentina,total,total offshore wealth,USD Bn,37.55977792653259,524819890176,Latin America & Caribbean,Upper middle income,524819890176,7.156698636924147
+2019,ARG,Argentina,total,total offshore wealth,USD Bn,46.87061258437769,447754698752,Latin America & Caribbean,Upper middle income,447754698752,10.467921992782511
+2020,ARG,Argentina,total,total offshore wealth,USD Bn,50.409613395411185,385540390912,Latin America & Caribbean,Upper middle income,385540390912,13.075053764449088
+2021,ARG,Argentina,total,total offshore wealth,USD Bn,51.176477535799535,487227129856,Latin America & Caribbean,Upper middle income,487227129856,10.503618210037843
+2022,ARG,Argentina,total,total offshore wealth,USD Bn,42.70336223673163,632770265088,Latin America & Caribbean,Upper middle income,632770265088,6.748636052105393

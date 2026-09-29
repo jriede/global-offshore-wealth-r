@@ -1,0 +1,23 @@
+year,iso3,country_name,indicator,label,unit,value,gdp,regionname,incomelevelname,gdp_used,ratio_offshore_GDP
+2001,ISR,Israel,total,total offshore wealth,USD Bn,44.65833969724641,134637420544,Middle East & North Africa,High income,134637420544,33.169336962046074
+2002,ISR,Israel,total,total offshore wealth,USD Bn,44.42205026604954,125059964928,Middle East & North Africa,High income,125059964928,35.52060029092793
+2003,ISR,Israel,total,total offshore wealth,USD Bn,52.165295998202545,131298951168,Middle East & North Africa,High income,131298951168,39.73016961228873
+2004,ISR,Israel,total,total offshore wealth,USD Bn,63.828295588121115,139973672960,Middle East & North Africa,High income,139973672960,45.60021483922995
+2005,ISR,Israel,total,total offshore wealth,USD Bn,77.61636125519126,147084001280,Middle East & North Africa,High income,147084001280,52.770090954647756
+2006,ISR,Israel,total,total offshore wealth,USD Bn,100.23957328342753,158670159872,Middle East & North Africa,High income,158670159872,63.17481079258462
+2007,ISR,Israel,total,total offshore wealth,USD Bn,129.32299851821153,184052891648,Middle East & North Africa,High income,184052891648,70.2640406028181
+2008,ISR,Israel,total,total offshore wealth,USD Bn,88.92809281730476,220529770496,Middle East & North Africa,High income,220529770496,40.324756434151254
+2009,ISR,Israel,total,total offshore wealth,USD Bn,88.05364165648449,211968131072,Middle East & North Africa,High income,211968131072,41.54098128391526
+2010,ISR,Israel,total,total offshore wealth,USD Bn,80.5295732256657,238364098560,Middle East & North Africa,High income,238364098560,33.78427108451281
+2011,ISR,Israel,total,total offshore wealth,USD Bn,83.13006823591533,266791862272,Middle East & North Africa,High income,266791862272,31.159146882509653
+2012,ISR,Israel,total,total offshore wealth,USD Bn,94.86382347067705,262282346496,Middle East & North Africa,High income,262282346496,36.168588827278846
+2013,ISR,Israel,total,total offshore wealth,USD Bn,93.68362371206825,297732767744,Middle East & North Africa,High income,297732767744,31.46567454497329
+2014,ISR,Israel,total,total offshore wealth,USD Bn,93.34744540075812,314330054656,Middle East & North Africa,High income,314330054656,29.697270120388815
+2015,ISR,Israel,total,total offshore wealth,USD Bn,91.91925282181616,303414280192,Middle East & North Africa,High income,303414280192,30.294965933590806
+2016,ISR,Israel,total,total offshore wealth,USD Bn,93.53895400427636,322102788096,Middle East & North Africa,High income,322102788096,29.04009448573847
+2017,ISR,Israel,total,total offshore wealth,USD Bn,120.6503560293602,358245433344,Middle East & North Africa,High income,358245433344,33.67812812103803
+2018,ISR,Israel,total,total offshore wealth,USD Bn,122.99228838106846,376691523584,Middle East & North Africa,High income,376691523584,32.650665247486494
+2019,ISR,Israel,total,total offshore wealth,USD Bn,147.15595970959245,402470502400,Middle East & North Africa,High income,402470502400,36.56316645122474
+2020,ISR,Israel,total,total offshore wealth,USD Bn,159.06490256157022,413267656704,Middle East & North Africa,High income,413267656704,38.4895599694847
+2021,ISR,Israel,total,total offshore wealth,USD Bn,173.80184394186188,488526544896,Middle East & North Africa,High income,488526544896,35.576745165170436
+2022,ISR,Israel,total,total offshore wealth,USD Bn,158.5361751503986,522033430528,Middle East & North Africa,High income,522033430528,30.36896985506281

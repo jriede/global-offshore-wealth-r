@@ -14,16 +14,11 @@ library(haven)
 library(purrr)
 library(janitor)
 
-# Assumed path objects:
-# raw  <- "path/to/raw"
-# work <- "path/to/work"
-
 matching_iso_ifscode <- read_dta(file.path(raw, "dta", "matching_iso_ifscode.dta"))
 
 # ------------------------------------------------------------------------------
 # import aggregates from CPIS data
 # ------------------------------------------------------------------------------
-
 
 for (asset in c("eq", "debt")) {
 
@@ -67,33 +62,56 @@ for (asset in c("eq", "debt")) {
     rename(country = B)
 
   # first merge on country
-  m1 <- df %>%
-    left_join(matching_iso_ifscode, by = "country")
   
-  m1 <- m1 %>%
-    rename(
-      our_code_orig = our_code
-#      country_v2 = country
+  # Mapping über beide Namensvarianten der Zuordnungstabelle
+  mapping <- matching_iso_ifscode %>%
+    select(country, country_v2, our_code)
+  
+  mapping_long <- bind_rows(
+    mapping %>%
+      transmute(
+        country = country,
+        our_code = our_code
+      ),
+    mapping %>%
+      transmute(
+        country = country_v2,
+        our_code = our_code
+      )
+  ) %>%
+    filter(!is.na(country), country != "") %>%
+    distinct(country, our_code)
+  
+  # Prüfen, ob ein Name mehreren Codes zugeordnet ist
+  mapping_conflicts <- mapping_long %>%
+    count(country) %>%
+    filter(n > 1)
+  
+  print(mapping_conflicts, n = Inf)
+  
+  # CPIS-Daten zuordnen
+  m2 <- df %>%
+    left_join(
+      mapping_long,
+      by = "country",
+      relationship = "many-to-one"
     ) %>%
-    select(-ifscode)
-
-  # second merge on country_v2
-  m2 <- m1 %>%
-    left_join(matching_iso_ifscode, by = c("country_v2" = "country"),
-              suffix = c("", "_m2")) %>%
     mutate(
-      our_code_orig = if_else(is.na(our_code_orig) & !is.na(our_code), our_code, our_code_orig),
-      our_code_orig = if_else(country_v2 == "SEFER + SSIO (**)", 9999, our_code_orig)
+      our_code = if_else(
+        country == "SEFER + SSIO (**)",
+        9999,
+        our_code
+      )
     ) %>%
-    filter(!is.na(our_code_orig)) %>%
+    filter(!is.na(our_code)) %>%
     transmute(
-      source = our_code_orig,
-      cname = country_v2,
+      source = our_code,
+      cname = country,
       year = year,
       !!paste0("sum", asset, "asset") := as.numeric(value)
     )
-
-  write_dta(m2, file.path(work, paste0("data_tot", asset, "_update.dta")))
+  saveRDS(m2, file = file.path(work, paste0("data_tot", asset, "_update.rds")))
+  #write_dta(m2, file.path(work, paste0("data_tot", asset, "_update.dta")))
 }
 
 # adjustment factor for equity growth between June and December
@@ -145,7 +163,8 @@ adjustfactor_cpis <- adjustfactor_cpis %>%
     names_prefix = "adj_"
   )
 
-write_dta(adjustfactor_cpis, file.path(work, "adjustfactor_cpis.dta"))
+saveRDS(adjustfactor_cpis, file.path(work, "adjustfactor_cpis.rds"))
+#write_dta(adjustfactor_cpis, file.path(work, "adjustfactor_cpis.dta"))
 ##################
 
 # total liabilities
@@ -179,30 +198,72 @@ for (liab in c("eq", "debt")) {
     filter(.data[[names(df)[1]]] != "") %>%
     rename(country = 1)
 
-  m1 <- df %>%
-    left_join(matching_iso_ifscode, by = "country") %>%
-    rename(
-      our_code_orig = our_code
-      #country_v2 = country
-    ) %>%
-    select(-ifscode, -iso3)
-
-  m2 <- m1 %>%
-    left_join(matching_iso_ifscode, by = c("country_v2" = "country"),
-              suffix = c("", "_m2")) %>%
+  # --- FIXME Korrektur für unterschiedliche Namen ...
+  df <- df %>%
     mutate(
-      our_code = case_when(
-        country_v2 == "Curaçao, Kingdom of the Netherlands" ~ 355,
-        country_v2 == "Sint Maarten, Kingdom of the Netherlands" ~ 355,
-        country_v2 == "Türkiye, Rep. of" ~ 186,
-        TRUE ~ our_code
-      ),
-      our_code_orig = if_else(!is.na(our_code), our_code, our_code_orig)
+      country = if_else(
+        country == "United States",
+        "United States of America",
+        country
+      )
+    )
+  
+  
+  df <- df %>%
+    mutate(
+      country = case_when(
+        country == "United States" ~ "United States of America",
+        country == "Türkiye, Rep. of" ~ "Turkey",
+        country == "Curaçao, Kingdom of the Netherlands" ~ "Curacao and Sint Maarten",
+        country == "Sint Maarten, Kingdom of the Netherlands" ~ "Curacao and Sint Maarten",
+        TRUE ~ country
+      )
+    )
+  
+  
+  # ------------------------------------------------------------
+  # IIP: Länderzuordnung über beide Namensvarianten
+  # ------------------------------------------------------------
+  
+  # Mapping über die erste Namensspalte
+  mapping_country <- matching_iso_ifscode %>%
+    select(
+      country,
+      code_country = our_code
+    )
+  
+  # Mapping über die alternative Namensspalte
+  mapping_country_v2 <- matching_iso_ifscode %>%
+    select(
+      country_v2,
+      code_country_v2 = our_code
+    )
+  
+  # Beide Zuordnungswege verwenden
+  m2 <- df %>%
+    left_join(
+      mapping_country,
+      by = "country",
+      relationship = "many-to-one"
     ) %>%
-    filter(!is.na(our_code_orig)) %>%
+    left_join(
+      mapping_country_v2,
+      by = c("country" = "country_v2"),
+      relationship = "many-to-one"
+    ) %>%
+    mutate(
+      host = case_when(
+        country == "United States" ~ 111,
+        country == "Türkiye, Rep. of" ~ 186,
+        country == "Curaçao, Kingdom of the Netherlands" ~ 355,
+        country == "Sint Maarten, Kingdom of the Netherlands" ~ 355,
+        TRUE ~ coalesce(code_country, code_country_v2)
+      )
+    ) %>%
+    filter(!is.na(host)) %>%
     transmute(
-      host = our_code_orig,
-      cname = country_v2,
+      host = host,
+      cname = country,
       year = year,
       value = as.character(value)
     ) %>%
@@ -212,20 +273,27 @@ for (liab in c("eq", "debt")) {
       value = str_replace_all(value, ",", ""),
       value = as.numeric(value)
     )
-
+  
+  
   host_df <- m2 %>%
     group_by(host, year) %>%
     summarise(value = sum(value, na.rm = TRUE), .groups = "drop") %>%
     rename(!!paste0(liab, "liab_IIP_host") := value)
 
-  write_dta(host_df, file.path(work, paste0("IIP_", liab, "liab_host.dta")))
+  saveRDS(host_df, file = file.path(work, paste0("IIP_", liab, "liab_host.rds")))
+  #write_dta(host_df, file.path(work, paste0("IIP_", liab, "liab_host.dta")))
 
-  total_df <- host_df %>%
+
+  total_df <- m2 %>%
     group_by(year) %>%
-    summarise(!!paste0(liab, "liab_IIP") := sum(.data[[paste0(liab, "liab_IIP_host")]], na.rm = TRUE),
-              .groups = "drop")
+    summarise(
+      !!paste0(liab, "liab_IIP") :=
+        sum(value, na.rm = TRUE),
+      .groups = "drop"
+    )
 
-  write_dta(total_df, file.path(work, paste0("IIP_", liab, "liab.dta")))
+  saveRDS(total_df, file = file.path(work, paste0("IIP_", liab, "liab.rds")))
+  #write_dta(total_df, file.path(work, paste0("IIP_", liab, "liab.dta")))
 }
 
 # ------------------------------------------------------------------------------
@@ -334,22 +402,41 @@ tic_2000 <- tic_2000 %>%
     Debtl  = all_of(debt_col[1])
   )
 
-#####
 
 # Combine all years
-data_TIC_update <- bind_rows(c(list(tic_2000), tic_list)) %>%
+
+data_TIC_update <- bind_rows(
+  c(list(tic_2000), tic_list)
+) %>%
+  select(countryid, country, group, Total, Equity, Debtl) %>%
   mutate(
     countryid = as.character(countryid),
-    Equity = as.numeric(str_replace_all(Equity, ",", "")),
-    Debtl  = as.numeric(str_replace_all(Debtl, ",", "")),
-    Total  = as.numeric(str_replace_all(Total, ",", ""))
+    across(
+      c(Total, Equity, Debtl),
+      ~ as.numeric(
+        na_if(
+          na_if(str_replace_all(.x, ",", ""), "*"),
+          "n.a."
+        )
+      )
+    )
   )
 
+tic_duplicates <- data_TIC_update %>%
+  count(countryid, country, group) %>%
+  filter(n > 1)
+
+print(tic_duplicates)
 ####
 
 
+names(data_TIC_update)
+names(tic_2000)
+names(tic_list[[1]])
+
 data_TIC_update <- data_TIC_update %>%
   pivot_wider(
+    id_cols = c(countryid, country),
     names_from = group,
     values_from = c(Total, Equity, Debtl)
   ) %>%
@@ -373,7 +460,8 @@ data_TIC_update <- data_TIC_update %>%
   ) %>%
   arrange(countryid, country, year)
 
-write_dta(data_TIC_update, file.path(work, "data_TIC_update.dta"))
+saveRDS(data_TIC_update, file.path(work, "data_TIC_update.rds"))
+#write_dta(data_TIC_update, file.path(work, "data_TIC_update.dta"))
 
 # ------------------------------------------------------------------------------
 # import China's assets
@@ -512,7 +600,8 @@ data_IMF_China <- data_IMF_China_main %>%
   select(-reserves_2001) %>%
   filter(year <= 2021)
 
-write_dta(data_IMF_China, file.path(work, "data_IMF_China.dta"))
+saveRDS(data_IMF_China, file.path(work, "data_IMF_China.rds"))
+#write_dta(data_IMF_China, file.path(work, "data_IMF_China.dta"))
 
 # ------------------------------------------------------------------------------
 # import foreign exchange data
@@ -594,10 +683,8 @@ data_foreignexchange_update <- m1 %>%
   ) %>%
   filter(year <= 2021)
 
-write_dta(
-  data_foreignexchange_update,
-  file.path(work, "data_foreignexchange_update.dta")
-)
+saveRDS(data_foreignexchange_update, file = file.path(work, "data_foreignexchange_update.rds"))
+#write_dta(data_foreignexchange_update, file.path(work, "data_foreignexchange_update.dta"))
 
 
 # ------------------------------------------------------------------------------
@@ -617,60 +704,70 @@ write_dta(
 #  show_col_types = FALSE
 #)
 
-tic_recent_raw <- read_tsv(
+tic_recent_raw <- readr::read_tsv(
   file.path(raw, "slt_table1.txt"),
-  skip = 8
+  col_names = FALSE,
+  col_types = readr::cols(.default = readr::col_character()),
+  show_col_types = FALSE
 )
+
+# --- von hier
 
 tic_recent <- tic_recent_raw %>%
   select(1:4, 7, 10, 13, 16) %>%
-  mutate(row_id = row_number()) %>%
-  filter(row_id > 8) %>%
-  select(-row_id)
-
-# Erste verbleibende Zeile als Spaltennamen verwenden
-recent_names <- vapply(
-  tic_recent[1, ],
-  function(x) make_clean_names(as.character(x)),
-  character(1)
-)
-names(tic_recent) <- recent_names
-
-tic_recent <- tic_recent %>%
-  slice(-1)
-
-# Spalten explizit harmonisieren
-names(tic_recent)[1:8] <- c(
-  "date_raw",
-  "country_code",
-  "country_name",
-  "for_lt_total_pos",
-  "for_lt_treas_pos",
-  "for_lt_agcy_pos",
-  "for_lt_corp_pos",
-  "for_lt_eqty_pos"
-)
-
-# Datum robust per Regex auslesen
-tic_recent <- tic_recent %>%
+  setNames(c(
+    "country_name",
+    "country_code",
+    "date_raw",
+    "for_lt_total_pos",
+    "for_lt_treas_pos",
+    "for_lt_agcy_pos",
+    "for_lt_corp_pos",
+    "for_lt_eqty_pos"
+  )) %>%
   mutate(
-    date_raw = as.character(date_raw),
-    year = str_extract(date_raw, "^[0-9]{4}"),
-    month = str_extract(date_raw, "(?<=-)[0-9]{1,2}$")
+    year = as.integer(str_extract(date_raw, "^[0-9]{4}")),
+    month = as.integer(str_extract(date_raw, "(?<=-)[0-9]{1,2}$")),
+    country_code = as.numeric(country_code),
+    across(
+      starts_with("for_lt_"),
+      ~ suppressWarnings(as.numeric(na_if(as.character(.x), "n.a.")))
+    )
   ) %>%
-  mutate(
-    year = as.integer(year),
-    month = as.integer(month)
+  filter(
+    !is.na(year),
+    month %in% c(6, 12),
+    country_code != 72907,
+    country_code != 76929,
+    !(country_code > 79995 & country_code < 99996)
   ) %>%
-  filter(!is.na(year), !is.na(month)) %>%
-  filter(month %in% c(6, 12)) %>%
-  mutate(
-    across(starts_with("for_lt_"), ~ na_if(as.character(.x), "n.a.")),
-    across(c(country_code, starts_with("for_lt_")), as.numeric)
-  ) %>%
-  filter(country_code != 72907, country_code != 76929) %>%
-  filter(!(country_code > 79995 & country_code < 99996)) %>%
   select(-date_raw)
+### bis hier
+
+tic_recent_raw %>%
+  select(1:3) %>%
+  setNames(c("country_name", "country_code", "date_raw")) %>%
+  filter(
+    !is.na(country_code),
+    is.na(suppressWarnings(as.numeric(country_code)))
+  ) %>%
+  print(n = 30)
+tic_recent %>%
+  filter(
+    country_code == 36137,
+    year >= 2019,
+    month == 12
+  ) %>%
+  select(
+    year,
+    country_name,
+    for_lt_eqty_pos,
+    for_lt_treas_pos,
+    for_lt_agcy_pos,
+    for_lt_corp_pos
+  ) %>%
+  arrange(year) %>%
+  print(n = Inf)
 
 # ------------------------------------------------------------------------------
 # 2) Bertaut & Judson 2011-2020
@@ -694,14 +791,28 @@ tic_2011_2020 <- read_csv(
   select(year, month, country_code, country_name, ends_with("est_pos")) %>%
   rename_with(~ str_remove(.x, "^ftot_"))
 
-# Merge wie in Stata: historische Schätzungen plus aktuelle TIC-Werte
+
+# Historische Schätzungen mit aktuellen TIC-Beständen verknüpfen.
+# Join-Schlüssel entsprechend Stata: country_code, month, year.
+
 tic_2011_plus <- tic_2011_2020 %>%
+  rename(country_name_hist = country_name) %>%
   full_join(
-    tic_recent,
-    by = c("country_code", "country_name", "year", "month")
+    tic_recent %>%
+      rename(country_name_recent = country_name),
+    by = c("country_code", "month", "year")
+  ) %>%
+  mutate(
+    country_name = coalesce(
+      country_name_recent,
+      country_name_hist
+    )
+  ) %>%
+  select(
+    -country_name_recent,
+    -country_name_hist
   ) %>%
   arrange(country_code, year, month)
-
 # ------------------------------------------------------------------------------
 # 3) Historische TIC-Datei 2001-2011
 # ------------------------------------------------------------------------------
@@ -739,11 +850,42 @@ tic_2001_2011 <- tic_2001_2011 %>%
 tic_2001_2011 <- tic_2001_2011 %>%
   select(countrycode, countryname, ends_with("est_pos"), month, year)
 
+### test
+tic_2001_2011 %>%
+  select(
+    ftot_agcy_est_pos,
+    ftot_corp_est_pos,
+    ftot_stk_est_pos,
+    ftot_treas_est_pos
+  ) %>%
+  pivot_longer(
+    everything(),
+    names_to = "variable",
+    values_to = "raw_value"
+  ) %>%
+  filter(
+    !is.na(raw_value),
+    is.na(suppressWarnings(
+      as.numeric(as.character(raw_value))
+    ))
+  ) %>%
+  count(variable, raw_value, sort = TRUE)
+## ende test
+
+
+
 tic_2001_2011 <- tic_2001_2011 %>%
   mutate(
     across(
-      c(ftot_agcy_est_pos, ftot_corp_est_pos, ftot_stk_est_pos, ftot_treas_est_pos),
-      ~ as.numeric(na_if(as.character(.x), "        ND"))
+      c(
+        ftot_agcy_est_pos,
+        ftot_corp_est_pos,
+        ftot_stk_est_pos,
+        ftot_treas_est_pos
+      ),
+      ~ as.numeric(
+        na_if(str_trim(as.character(.x)), "ND")
+      )
     )
   ) %>%
   rename(
@@ -779,20 +921,9 @@ TIC_liab_monthly_complete <- tic_2001_2011 %>%
   rename(equity = eqty) %>%
   select(country_code, country_name, year, month, equity, debtl)
 
-write_dta(
-  TIC_liab_monthly_complete,
-  file.path(work, "TIC_liab_monthly_complete.dta")
-)
+saveRDS(TIC_liab_monthly_complete, file = file.path(work, "TIC_liab_monthly_complete.rds"))
+#write_dta(TIC_liab_monthly_complete, file.path(work, "TIC_liab_monthly_complete.dta"))
 
-######
-
-library(haven)
-library(readxl)
-library(readr)
-library(dplyr)
-library(tidyr)
-library(stringr)
-library(janitor)
 
 # ------------------------------------------------------------------------------
 # Cayman Islands
@@ -801,8 +932,10 @@ library(janitor)
 # ------------------------------------------------------------------------------
 # TIC: langfristige US-Wertpapiere, gehalten von den Cayman Islands
 # ------------------------------------------------------------------------------
-
-TIC_lt_monthly_Cayman_complete <- read_dta(file.path(work, "TIC_liab_monthly_complete.dta")) %>%
+# FIXME work2
+#TIC_lt_monthly_Cayman_complete <- read_dta(file.path(work, "TIC_liab_monthly_complete.dta")) %>%
+#TIC_lt_monthly_Cayman_complete <- read_dta(file.path(work2, "TIC_liab_monthly_complete.dta")) %>%
+TIC_lt_monthly_Cayman_complete <- read_work_data("TIC_liab_monthly_complete") %>%
   filter(country_code == 36137, month == 12) %>%
   mutate(
     source = 377,
@@ -842,8 +975,17 @@ cayman_short <- read_excel(
   ) %>%
   select(year, shortterm_debt)
 
+
+cayman_short %>%
+  filter(year >= 2019) %>%
+  print(n = Inf)
+
+TIC_lt_monthly_Cayman_complete %>%
+  filter(year >= 2019) %>%
+  print(n = Inf)
+
 Cayman_TIC_Dec <- cayman_short %>%
-  left_join(TIC_lt_monthly_Cayman_complete, by = "year") %>%
+  full_join(TIC_lt_monthly_Cayman_complete, by = "year") %>%
   mutate(
     # Werte für 2001 und 2002 wie im Stata-Skript gesetzt
     shortterm_debt = if_else(year == 2001, 4712, shortterm_debt),
@@ -862,7 +1004,31 @@ Cayman_TIC_Dec <- cayman_short %>%
     debt_KY_TIC = debt
   )
 
-write_dta(Cayman_TIC_Dec, file.path(work, "Cayman_TIC_Dec.dta"))
+#---
+Cayman_TIC_Dec %>%
+  filter(year >= 2019) %>%
+  select(year, source, host, eq_KY_TIC, debt_KY_TIC) %>%
+  print(n = Inf)
+TIC_lt_monthly_Cayman_complete %>%
+  summarise(
+    n = n(),
+    min_year = min(year, na.rm = TRUE),
+    max_year = max(year, na.rm = TRUE)
+  )
+
+cayman_short %>%
+  summarise(
+    n = n(),
+    min_year = min(year, na.rm = TRUE),
+    max_year = max(year, na.rm = TRUE)
+  )
+
+###
+saveRDS(Cayman_TIC_Dec, file = file.path(work, "Cayman_TIC_Dec.rds"))
+#write_dta(Cayman_TIC_Dec, file.path(work, "Cayman_TIC_Dec.dta"))
+
+
+
 
 # ------------------------------------------------------------------------------
 # CPIS banking holdings Cayman
@@ -952,7 +1118,8 @@ KY_banks_final <- KY_ins %>%
   ) %>%
   select(year, KY_assets, host)
 
-write_dta(KY_banks_final, file.path(work, "KY_banks.dta"))
+saveRDS(KY_banks_final, file = file.path(work, "KY_banks.rds"))
+#write_dta(KY_banks_final, file.path(work, "KY_banks.dta"))
 
 # ------------------------------------------------------------------------------
 # Schätzung der Equity-Liabilities nichtfinanzieller Cayman-Unternehmen
@@ -1018,13 +1185,11 @@ KY_liab_nfc <- read_csv(
     eqliab_nfc = 0.75 * mktcap_usd
   )
 
-write_dta(KY_liab_nfc, file.path(work, "KY_liab_nfc.dta"))
+saveRDS(KY_liab_nfc, file = file.path(work, "KY_liab_nfc.rds"))
+#write_dta(KY_liab_nfc, file.path(work, "KY_liab_nfc.dta"))
 #####
 
-library(haven)
-library(readxl)
-library(dplyr)
-library(stringr)
+
 
 # ------------------------------------------------------------------------------
 # China's liabilities
@@ -1033,8 +1198,10 @@ library(stringr)
 # ------------------------------------------------------------------------------
 # long-term
 # ------------------------------------------------------------------------------
-
-TIC_longterm_monthly_China <- read_dta(file.path(work, "TIC_liab_monthly_complete.dta")) %>%
+# FIXME
+#TIC_longterm_monthly_China <- read_dta(file.path(work, "TIC_liab_monthly_complete.dta")) %>%
+#TIC_longterm_monthly_China <- read_dta(file.path(work2, "TIC_liab_monthly_complete.dta")) %>%
+TIC_longterm_monthly_China <- read_work_data("TIC_liab_monthly_complete") %>% 
   filter(country_code == 41408, month == 12)
 
 # ------------------------------------------------------------------------------
@@ -1073,6 +1240,7 @@ TIC_China_short <- read_excel(
 # short-term 2001-2003
 # ------------------------------------------------------------------------------
 
+
 TIC_China_short_pre <- read_excel(
   file.path(raw, "TIC_US_Financial_Firms_Liabilities_China.xlsx"),
   sheet = "before2003",
@@ -1088,18 +1256,24 @@ TIC_China_short_pre <- read_excel(
   slice(-1, -2) %>%
   mutate(
     date = as.character(date),
-    year = str_extract(date, "^[0-9]{4}"),
+    year = as.integer(str_extract(date, "^[0-9]{4}")),
     month = str_extract(date, "(?<=-)[0-9]{2}$")
   ) %>%
-  filter(month == "12") %>%
+  filter(month == "12", year > 2000) %>%
   transmute(
-    year = as.integer(year),
-    shortterm_official = as.numeric(shortterm_official),
-    shortterm_other = as.numeric(shortterm_other)
+    year,
+    across(
+      c(shortterm_official, shortterm_other),
+      ~ as.numeric(
+        na_if(
+          na_if(str_trim(as.character(.x)), "-"),
+          "*"
+        )
+      )
+    )
   ) %>%
-  filter(year > 2000) %>%
   mutate(
-    shortterm_debt = rowSums(across(c(shortterm_official, shortterm_other)), na.rm = TRUE)
+    shortterm_debt = shortterm_official + shortterm_other
   ) %>%
   select(year, shortterm_debt)
 
@@ -1131,7 +1305,8 @@ TIC_China_Dec <- bind_rows(TIC_China_short_pre, TIC_China_short) %>%
     debt_China_TIC, total_lt_China_TIC, total_China_TIC
   )
 
-write_dta(TIC_China_Dec, file.path(work, "TIC_China_Dec.dta"))
+saveRDS(TIC_China_Dec, file = file.path(work, "TIC_China_Dec.rds"))
+#write_dta(TIC_China_Dec, file.path(work, "TIC_China_Dec.dta"))
 
 ####
 
@@ -1147,8 +1322,10 @@ write_dta(TIC_China_Dec, file.path(work, "TIC_China_Dec.dta"))
 # ------------------------------------------------------------------------------
 # 1) Relevante TIC-Daten für Middle East speichern
 # ------------------------------------------------------------------------------
-
-TIC_update_middleast <- read_dta(file.path(work, "data_TIC_update.dta")) %>%
+# FIXME
+#TIC_update_middleast <- read_dta(file.path(work, "data_TIC_update.dta")) %>%
+#TIC_update_middleast <- read_dta(file.path(work2, "data_TIC_update.dta")) %>%
+TIC_update_middleast <- read_work_data("data_TIC_update") %>%
   filter(country %in% c(
     " Middle Eastern Oil Exporters",
     "Kuwait",
@@ -1161,7 +1338,8 @@ TIC_update_middleast <- read_dta(file.path(work, "data_TIC_update.dta")) %>%
     "United Arab Emirates"
   ))
 
-write_dta(TIC_update_middleast, file.path(work, "TIC_update_middleast.dta"))
+saveRDS(TIC_update_middleast, file = file.path(work, "TIC_update_middleast.rds"))
+#write_dta(TIC_update_middleast, file.path(work, "TIC_update_middleast.dta"))
 
 TIC_update_middleeast_total <- TIC_update_middleast %>%
   group_by(year) %>%
@@ -1172,6 +1350,7 @@ TIC_update_middleeast_total <- TIC_update_middleast %>%
     .groups = "drop"
   )
 
+saveRDS(TIC_update_middleeast_total, file = file.path(work, "TIC_update_middleeast_total.rds"))
 # optional wie im Stata-tempfile
 # write_dta(TIC_update_middleeast_total, file.path(work, "TIC_update_middleeast_total.dta"))
 
@@ -1180,11 +1359,15 @@ TIC_update_middleeast_total <- TIC_update_middleast %>%
 # ------------------------------------------------------------------------------
 
 # 2a) kurzfristige liabilities of foreign official institutions
+
 TIC_shortterm_FOI <- read_csv(
   file.path(raw, "tic_historic", "bltype_history.csv"),
   col_names = FALSE,
+  col_types = cols(.default = col_character()),
+  skip = 18,
+  skip_empty_rows = TRUE,
   show_col_types = FALSE
-) 
+)
 
 TIC_shortterm_FOI <- TIC_shortterm_FOI %>%
   select(1, 6, 7) %>%
@@ -1209,7 +1392,8 @@ TIC_shortterm_FOI <- TIC_shortterm_FOI %>%
   ) %>%
   select(year, month, shortterm_FOI)
 
-write_dta(TIC_shortterm_FOI, file.path(work, "TIC_shortterm_FOI.dta"))
+saveRDS(TIC_shortterm_FOI, file = file.path(work, "TIC_shortterm_FOI.rds"))
+#write_dta(TIC_shortterm_FOI, file.path(work, "TIC_shortterm_FOI.dta"))
 
 # 2b) langfristige liabilities of foreign official institutions, 2001-2011
 TIC_longterm_FOI_2001_11 <- read_csv(
@@ -1244,10 +1428,14 @@ TIC_longterm_FOI_2001_11 <- read_csv(
 
 ###################
 # 2c) langfristige liabilities of foreign official institutions, neuere Historie
+
 TIC_liabs_monthly_FOIs <- read_csv(
   file.path(raw, "tic_historic", "slt2d_history.csv"),
   col_names = FALSE,
-  show_col_types = FALSE
+  col_types = cols(.default = col_character()),
+  show_col_types = FALSE,
+  skip = 17,
+  n_max = 137
 )
 
 TIC_liabs_monthly_FOIs <- TIC_liabs_monthly_FOIs %>%
@@ -1295,14 +1483,18 @@ shortterm_ratio_FOI <- TIC_liabs_monthly_FOIs %>%
   filter(month == 12) %>%
   select(year, month, longterm_FOI, short_long_ratio)
 
-write_dta(shortterm_ratio_FOI, file.path(work, "shortterm_ratio_FOI.dta"))
+saveRDS(shortterm_ratio_FOI, file = file.path(work, "shortterm_ratio_FOI.rds"))
+#write_dta(shortterm_ratio_FOI, file.path(work, "shortterm_ratio_FOI.dta"))
 
 # ------------------------------------------------------------------------------
 # 3) Anpassungsfaktor Juni -> Dezember
 # ------------------------------------------------------------------------------
 
 # 3a) Faktor aus Saudi-Arabien und Kuwait
-adjustfactor <- read_dta(file.path(work, "TIC_liab_monthly_complete.dta")) %>%
+# FIXME
+#adjustfactor <- read_dta(file.path(work, "TIC_liab_monthly_complete.dta")) %>%
+#adjustfactor <- read_dta(file.path(work2, "TIC_liab_monthly_complete.dta")) %>%
+adjustfactor <- read_work_data("TIC_liab_monthly_complete") %>%
   filter(country_code %in% c(46612, 45608, 43109, 46604)) %>%
   mutate(
     help = if_else(country_code == 46612, 1, 0)
@@ -1341,13 +1533,16 @@ adjust_period <- TIC_liabs_monthly_FOIs %>%
   ) %>%
   select(year, adj_eq)
 
-write_dta(adjust_period, file.path(work, "adjust_period.dta"))
+saveRDS(adjust_period, file = file.path(work, "adjust_period.rds"))
+#write_dta(adjust_period, file.path(work, "adjust_period.dta"))
 
 # ------------------------------------------------------------------------------
 # 4) Middle East aggregate aus Bertaut & Judson extrahieren
 # ------------------------------------------------------------------------------
-
-Bertaut_Judson_middleeast_Dec <- read_dta(file.path(work, "TIC_liab_monthly_complete.dta")) %>%
+# FIXME
+#Bertaut_Judson_middleeast_Dec <- read_dta(file.path(work, "TIC_liab_monthly_complete.dta")) %>%
+#Bertaut_Judson_middleeast_Dec <- read_dta(file.path(work2, "TIC_liab_monthly_complete.dta")) %>%
+Bertaut_Judson_middleeast_Dec <- read_work_data("TIC_liab_monthly_complete") %>%
   filter(country_name == " Middle Eastern Oil Exporters", month == 12) %>%
   transmute(
     country = country_name,
@@ -1357,21 +1552,91 @@ Bertaut_Judson_middleeast_Dec <- read_dta(file.path(work, "TIC_liab_monthly_comp
     Total = Equity + Debtl
   )
 
-write_dta(
-  Bertaut_Judson_middleeast_Dec,
-  file.path(work, "Bertaut_Judson_middleeast_Dec.dta")
-)
+saveRDS( Bertaut_Judson_middleeast_Dec, file = file.path(work, "Bertaut_Judson_middleeast_Dec.rds"))
+#write_dta(  Bertaut_Judson_middleeast_Dec,  file.path(work, "Bertaut_Judson_middleeast_Dec.dta"))
 #####
 
 # ------------------------------------------------------------------------------
 # BIS securities of international organizations
 # ------------------------------------------------------------------------------
 
-bis_raw <- read_csv(
+bis_dates <- read_csv(
   file.path(raw, "BIS_2023_table-c1.csv"),
-  col_names = FALSE,
+  skip = 5,
+  n_max = 0,
   show_col_types = FALSE
+) %>%
+  names()
+
+# Erste und letzte Zeitreihenspalten
+head(bis_dates[-(1:16)], 8)
+tail(bis_dates[-(1:16)], 8)
+
+# Import BIS data
+bis_file <- file.path(raw, "BIS_2023_table-c1.csv")
+
+bis_raw <- read.csv(
+  bis_file,
+  skip = 5,
+  header = TRUE,
+  fill = TRUE,
+  colClasses = "character",
+  check.names = FALSE,
+  na.strings = c("", "NA"),
+  stringsAsFactors = FALSE
 )
+
+
+dim(bis_raw)
+names(bis_raw)[1:20]
+
+# Metadaten der ersten Beobachtungen
+head(bis_raw[, 1:16], 3)
+
+# Letzte Zeitreihenspalten
+tail(names(bis_raw), 5)
+
+bis_long <- bis_raw %>%
+  tidyr::pivot_longer(
+    cols = -(1:16),
+    names_to = "date",
+    values_to = "value_raw"
+  ) %>%
+  dplyr::mutate(
+    date = as.Date(date, format = "%d/%m/%Y"),
+    value = suppressWarnings(as.numeric(value_raw)),
+    year = as.integer(format(date, "%Y")),
+    quarter = lubridate::quarter(date)
+  )
+
+
+bis_long <- bis_long %>%
+  dplyr::filter(
+    year >= 2001,
+    year <= 2021
+  )
+
+### test
+
+# Anzahl der Beobachtungen
+dim(bis_long)
+
+# Zeitlicher Umfang
+range(bis_long$date, na.rm = TRUE)
+
+# Anzahl unterschiedlicher Quartale
+n_distinct(bis_long$date)
+
+# Anteil fehlender numerischer Werte
+mean(is.na(bis_long$value))
+#####
+
+bis_annual <- bis_long %>%
+  filter(
+    quarter == 4,
+    year >= 2001,
+    year <= 2021
+  )
 
 BIS_total_debt <- bis_raw %>%
   select(2, 4, 6, 234:321) %>%
@@ -1450,15 +1715,11 @@ BIS_total_debt <- BIS_total_debt %>%
   ) %>%
   select(year, host, total_debt_BIS)
 
-write_dta(
-  BIS_total_debt %>% filter(host == 9998),
-  file.path(work, "BIS_total_debt_IO.dta")
-)
+saveRDS(BIS_total_debt %>% filter(host == 9998), file = file.path(work, "BIS_total_debt_IO.rds"))
+#write_dta(  BIS_total_debt %>% filter(host == 9998),  file.path(work, "BIS_total_debt_IO.dta"))
 
-write_dta(
-  BIS_total_debt %>% filter(host != 9998),
-  file.path(work, "BIS_total_debt_ofc.dta")
-)
+saveRDS(BIS_total_debt %>% filter(host != 9998), file = file.path(work, "BIS_total_debt_ofc.rds"))
+#write_dta( BIS_total_debt %>% filter(host != 9998), file.path(work, "BIS_total_debt_ofc.dta"))
 
 #####
 
@@ -1466,20 +1727,40 @@ write_dta(
 # Dutch SFIs
 # ------------------------------------------------------------------------------
 
-dnb_raw <- read_csv(
-  file.path(raw, "DNB_2023_Cross-border_securities_holdings_(Quarter).csv"),
+dnb_file <- file.path(
+  raw,
+  "DNB_2023_Cross-border_securities_holdings_(Quarter).csv"
+)
+
+# Originaldatei einlesen
+dnb_lines <- readLines(dnb_file)
+
+# Quellen- und Disclaimer-Zeilen entfernen
+dnb_lines <- dnb_lines[
+  !grepl("^\\s*\"?(Source: DNB|Disclaimer:)", dnb_lines)
+]
+
+# Bereinigte Daten importieren
+dnb_raw <- readr::read_csv(
+  I(paste(dnb_lines, collapse = "\n")),
+  col_types = readr::cols(.default = readr::col_character()),
   show_col_types = FALSE
 )
 
 dnb_raw <- dnb_raw %>%
-  rename(hoofdpost = Hoofdpost,
-         subpost1 = `Subpost 1`,
-         subpost2 = `Subpost 2`,
-         sector = Sector,
-         subsector = Subsector,
-         period = Period,
-         label7 =`&label7`
-         )
+  rename(
+    hoofdpost = Hoofdpost,
+    subpost1  = `Subpost 1`,
+    subpost2  = `Subpost 2`,
+    sector    = Sector,
+    subsector = Subsector,
+    label7    = `&label7`,
+    period    = Period,
+    waarde    = waarde
+  ) %>%
+  mutate(
+    waarde = as.numeric(waarde)
+  )
 
 dnb <- dnb_raw %>%
   filter(
@@ -1614,4 +1895,6 @@ DNB_assets <- DNB_assets %>%
   filter(year < 2015) %>%
   mutate(source = 138)
 
-write_dta(DNB_assets, file.path(work, "DNB_assets.dta"))
+saveRDS(DNB_assets, file.path(work, "DNB_assets.rds"))
+#write_dta(DNB_assets, file.path(work, "DNB_assets.dta"))
+

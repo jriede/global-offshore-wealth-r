@@ -1,0 +1,23 @@
+year,iso3,country_name,indicator,label,unit,value,gdp,regionname,incomelevelname,gdp_used,ratio_offshore_GDP
+2001,RUS,Russian Federation,total,total offshore wealth,USD Bn,92.89191799081948,306602082304,Europe & Central Asia,Upper middle income,306602082304,30.297223454182515
+2002,RUS,Russian Federation,total,total offshore wealth,USD Bn,93.99416739615552,345470500864,Europe & Central Asia,Upper middle income,345470500864,27.207581301755727
+2003,RUS,Russian Federation,total,total offshore wealth,USD Bn,103.00016358483917,430347419648,Europe & Central Asia,Upper middle income,430347419648,23.934188723401085
+2004,RUS,Russian Federation,total,total offshore wealth,USD Bn,127.18766642229147,591016689664,Europe & Central Asia,Upper middle income,591016689664,21.520148017241134
+2005,RUS,Russian Federation,total,total offshore wealth,USD Bn,144.19353114559658,764016001024,Europe & Central Asia,Upper middle income,764016001024,18.873103567508533
+2006,RUS,Russian Federation,total,total offshore wealth,USD Bn,171.55561026787944,989932027904,Europe & Central Asia,Upper middle income,989932027904,17.330039379685193
+2007,RUS,Russian Federation,total,total offshore wealth,USD Bn,244.14446411150936,1299703398400,Europe & Central Asia,Upper middle income,1299703398400,18.784629201713518
+2008,RUS,Russian Federation,total,total offshore wealth,USD Bn,207.42065027917408,1660848046080,Europe & Central Asia,Upper middle income,1660848046080,12.488839708649843
+2009,RUS,Russian Federation,total,total offshore wealth,USD Bn,260.4584798534127,1222645907456,Europe & Central Asia,Upper middle income,1222645907456,21.302854593065078
+2010,RUS,Russian Federation,total,total offshore wealth,USD Bn,263.982846819626,1524916682752,Europe & Central Asia,Upper middle income,1524916682752,17.31129640100855
+2011,RUS,Russian Federation,total,total offshore wealth,USD Bn,316.1193550123564,2045922770944,Europe & Central Asia,Upper middle income,2045922770944,15.451187087892727
+2012,RUS,Russian Federation,total,total offshore wealth,USD Bn,409.6302893237597,2208293453824,Europe & Central Asia,Upper middle income,2208293453824,18.549631101537788
+2013,RUS,Russian Federation,total,total offshore wealth,USD Bn,377.51086980570636,2292469989376,Europe & Central Asia,Upper middle income,2292469989376,16.467429085449584
+2014,RUS,Russian Federation,total,total offshore wealth,USD Bn,363.0657931421955,2059241521152,Europe & Central Asia,Upper middle income,2059241521152,17.63104470325005
+2015,RUS,Russian Federation,total,total offshore wealth,USD Bn,332.42794127786607,1363482116096,Europe & Central Asia,Upper middle income,1363482116096,24.380806858669533
+2016,RUS,Russian Federation,total,total offshore wealth,USD Bn,261.8158375092224,1276786376704,Europe & Central Asia,Upper middle income,1276786376704,20.505845166134606
+2017,RUS,Russian Federation,total,total offshore wealth,USD Bn,313.91056640809734,1574199361536,Europe & Central Asia,Upper middle income,1574199361536,19.940966441620464
+2018,RUS,Russian Federation,total,total offshore wealth,USD Bn,290.55597868106844,1657328762880,Europe & Central Asia,Upper middle income,1657328762880,17.53158366576338
+2019,RUS,Russian Federation,total,total offshore wealth,USD Bn,349.09480213601034,1693114957824,Europe & Central Asia,Upper middle income,1693114957824,20.61849377225211
+2020,RUS,Russian Federation,total,total offshore wealth,USD Bn,375.197191692661,1493075886080,Europe & Central Asia,Upper middle income,1493075886080,25.129144150718517
+2021,RUS,Russian Federation,total,total offshore wealth,USD Bn,364.9655122336343,1836892028928,Europe & Central Asia,Upper middle income,1836892028928,19.86864260315976
+2022,RUS,Russian Federation,total,total offshore wealth,USD Bn,263.7349444462775,2240422346752,Europe & Central Asia,Upper middle income,2240422346752,11.7716619292171

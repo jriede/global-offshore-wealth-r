@@ -1,0 +1,23 @@
+year,iso3,country_name,indicator,label,unit,value,gdp,regionname,incomelevelname,gdp_used,ratio_offshore_GDP
+2001,COL,Colombia,total,total offshore wealth,USD Bn,7.531782349978354,97606000640,Latin America & Caribbean,Upper middle income,97606000640,7.716515686118326
+2002,COL,Colombia,total,total offshore wealth,USD Bn,7.337032409815542,97352998912,Latin America & Caribbean,Upper middle income,97352998912,7.536524289762951
+2003,COL,Colombia,total,total offshore wealth,USD Bn,8.15906168556444,94071996416,Latin America & Caribbean,Upper middle income,94071996416,8.673209877978868
+2004,COL,Colombia,total,total offshore wealth,USD Bn,9.903085896964651,116381999104,Latin America & Caribbean,Upper middle income,116381999104,8.509121662461876
+2005,COL,Colombia,total,total offshore wealth,USD Bn,11.420737669982408,145601003520,Latin America & Caribbean,Upper middle income,145601003520,7.8438591725871145
+2006,COL,Colombia,total,total offshore wealth,USD Bn,13.553967355036473,161792999424,Latin America & Caribbean,Upper middle income,161792999424,8.377350938106108
+2007,COL,Colombia,total,total offshore wealth,USD Bn,18.449844940103866,206229995520,Latin America & Caribbean,Upper middle income,206229995520,8.946247074089966
+2008,COL,Colombia,total,total offshore wealth,USD Bn,15.315126866551886,242504007680,Latin America & Caribbean,Upper middle income,242504007680,6.3154118618778465
+2009,COL,Colombia,total,total offshore wealth,USD Bn,18.15650633338965,232469004288,Latin America & Caribbean,Upper middle income,232469004288,7.810291263989762
+2010,COL,Colombia,total,total offshore wealth,USD Bn,17.038110723509146,286499012608,Latin America & Caribbean,Upper middle income,286499012608,5.947005041452414
+2011,COL,Colombia,total,total offshore wealth,USD Bn,18.761205429119215,334965997568,Latin America & Caribbean,Upper middle income,334965997568,5.6009283226756725
+2012,COL,Colombia,total,total offshore wealth,USD Bn,23.0228353324163,370691014656,Latin America & Caribbean,Upper middle income,370691014656,6.21078861428066
+2013,COL,Colombia,total,total offshore wealth,USD Bn,25.41208004097739,382093983744,Latin America & Caribbean,Upper middle income,382093983744,6.650740687401998
+2014,COL,Colombia,total,total offshore wealth,USD Bn,30.774777647014908,381240999936,Latin America & Caribbean,Upper middle income,381240999936,8.07226338515038
+2015,COL,Colombia,total,total offshore wealth,USD Bn,26.379994966498916,293491998720,Latin America & Caribbean,Upper middle income,293491998720,8.988318278368537
+2016,COL,Colombia,total,total offshore wealth,USD Bn,17.918500727666064,282720010240,Latin America & Caribbean,Upper middle income,282720010240,6.337896179494021
+2017,COL,Colombia,total,total offshore wealth,USD Bn,17.850803920858496,311889985536,Latin America & Caribbean,Upper middle income,311889985536,5.723429654267647
+2018,COL,Colombia,total,total offshore wealth,USD Bn,16.300822552284206,334123991040,Latin America & Caribbean,Upper middle income,334123991040,4.878674680481933
+2019,COL,Colombia,total,total offshore wealth,USD Bn,20.31973575688168,323054993408,Latin America & Caribbean,Upper middle income,323054993408,6.289868960861106
+2020,COL,Colombia,total,total offshore wealth,USD Bn,25.8897431229718,270150991872,Latin America & Caribbean,Upper middle income,270150991872,9.583434413314535
+2021,COL,Colombia,total,total offshore wealth,USD Bn,29.53637954707357,318512005120,Latin America & Caribbean,Upper middle income,318512005120,9.27323902153882
+2022,COL,Colombia,total,total offshore wealth,USD Bn,28.230239818325195,343938990080,Latin America & Caribbean,Upper middle income,343938990080,8.207920774483538

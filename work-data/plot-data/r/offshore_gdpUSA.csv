@@ -1,0 +1,23 @@
+year,iso3,country_name,indicator,label,unit,value,gdp,regionname,incomelevelname,gdp_used,ratio_offshore_GDP
+2001,USA,United States of America,total,total offshore wealth,USD Bn,878.8348273364037,10581924904960,North America,High income,10581924904960,8.305056360062363
+2002,USA,United States of America,total,total offshore wealth,USD Bn,898.2287416799278,10929100029952,North America,High income,10929100029952,8.218688997431316
+2003,USA,United States of America,total,total offshore wealth,USD Bn,866.9409127025938,11456449871872,North America,High income,11456449871872,7.567273652819067
+2004,USA,United States of America,total,total offshore wealth,USD Bn,1056.6504279887295,12217174982656,North America,High income,12217174982656,8.648893295616977
+2005,USA,United States of America,total,total offshore wealth,USD Bn,1112.5590064577227,13039199846400,North America,High income,13039199846400,8.53241778301979
+2006,USA,United States of America,total,total offshore wealth,USD Bn,1204.3711874974408,13815600119808,North America,High income,13815600119808,8.717472835441175
+2007,USA,United States of America,total,total offshore wealth,USD Bn,1820.8128523353091,14474249502720,North America,High income,14474249502720,12.579670206687691
+2008,USA,United States of America,total,total offshore wealth,USD Bn,1799.2081390804926,14769850417152,North America,High income,14769850417152,12.181627357519478
+2009,USA,United States of America,total,total offshore wealth,USD Bn,2052.279339478597,14478049542144,North America,High income,14478049542144,14.17510924731014
+2010,USA,United States of America,total,total offshore wealth,USD Bn,1898.9821973703824,15048975056896,North America,High income,15048975056896,12.618681273580808
+2011,USA,United States of America,total,total offshore wealth,USD Bn,2176.173495431129,15599724920832,North America,High income,15599724920832,13.950076084515114
+2012,USA,United States of America,total,total offshore wealth,USD Bn,2761.0214856024068,16253950361600,North America,High income,16253950361600,16.986771979600277
+2013,USA,United States of America,total,total offshore wealth,USD Bn,2828.697209362572,16843224907776,North America,High income,16843224907776,16.79427321579402
+2014,USA,United States of America,total,total offshore wealth,USD Bn,3219.845352180516,17550675017728,North America,High income,17550675017728,18.345991529830837
+2015,USA,United States of America,total,total offshore wealth,USD Bn,2800.5323140551955,18206024531968,North America,High income,18206024531968,15.382448316147956
+2016,USA,United States of America,total,total offshore wealth,USD Bn,1937.6100535991523,18695099252736,North America,High income,18695099252736,10.364267273497282
+2017,USA,United States of America,total,total offshore wealth,USD Bn,2048.786913016614,19477349531648,North America,High income,19477349531648,10.518817818038428
+2018,USA,United States of America,total,total offshore wealth,USD Bn,1742.6318844801217,20533074722816,North America,High income,20533074722816,8.486950483571459
+2019,USA,United States of America,total,total offshore wealth,USD Bn,2052.5301572474364,21380949082112,North America,High income,21380949082112,9.5998084526783245
+2020,USA,United States of America,total,total offshore wealth,USD Bn,2442.5792715423945,21060449730560,North America,High income,21060449730560,11.597944501622216
+2021,USA,United States of America,total,total offshore wealth,USD Bn,2593.1541632441977,23315074777088,North America,High income,23315074777088,11.122221086730208
+2022,USA,United States of America,total,total offshore wealth,USD Bn,2204.377787901939,25464475222016,North America,High income,25464475222016,8.656678642236791

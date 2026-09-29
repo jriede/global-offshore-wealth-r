@@ -7,6 +7,8 @@
 
 library(readxl)
 library(dplyr)
+library(haven)
+
 
 # Import external wealth of nations dataset
 ewn <- read_excel(
@@ -33,8 +35,8 @@ ewn <- ewn %>%
   ) %>%
   filter(year >= 2001) %>%
   select(
-    year, source, country, aequity, adebt, aportif_debt,
-    ewn22, lequity, lportif_debt, gdp_us
+    country, source, year, aequity, lequity, adebt, gdp_us, 
+    aportif_debt, lportif_debt, ewn22
   )
 
 # Harmonise IFS code
@@ -77,12 +79,12 @@ ewn <- ewn %>%
 
 # Save main dataset
 saveRDS(ewn, file = file.path(work, "data_ewn_update.rds"))
-write_dta(ewn, file.path(work, "data_ewn_update.dta"))
+#write_dta(ewn, file.path(work, "data_ewn_update.dta"))
 
 # Keep GDP subset and save
 ewn_gdp <- ewn %>%
   select(country, source, year, gdp_us)
 
 saveRDS(ewn_gdp, file = file.path(work, "ewn_gdp.rds"))
-write_dta(ewn_gdp, file.path(work, "ewn_gdp.dta"))
+#write_dta(ewn_gdp, file.path(work, "ewn_gdp.dta"))
 # ------------------------------------------------------------------------------
