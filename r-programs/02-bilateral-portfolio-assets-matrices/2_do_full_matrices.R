@@ -11,6 +11,7 @@ library(fixest)
 library(stringr)
 library(purrr)
 library(modelsummary)
+library(tibble)
 
 # Helpers for reading/writing Stata files
 read_dta2  <- function(path) haven::read_dta(path)
@@ -172,6 +173,10 @@ mod_debt_bench <- feols(
 )
 
 etable(mod_eq_bench, mod_debt_bench)
+# ergebnistabelle speichern...
+etable(mod_eq_bench, mod_debt_bench, file = file.path(work, "2-reg-etable-mod_bench.txt"))
+
+
 # Augmented regressions:
 # Stata: reg y ... year_* host_* _IofcXhos_1_*
 # In fixest, i(host, ofc_source) creates host-specific interaction effects
@@ -191,34 +196,60 @@ mod_debt <- feols(
     i(host, ofc_source, ref = 111) | year + host,
   data = df
 )
+etable(mod_eq, mod_debt, file = file.path(work, "2-reg-etable-mod.txt"))
+
+
+# Schätzungen sind hier komplett. 
+# Nun: Export der Koeffizienten zum Vergleich mit STATA später ...
+
+
+# ============================================================
+# Export gravity regression coefficients
+# ============================================================
+
+gravity_coefficients_r <- list()
+
+for (model_name in names(models)) {
+  
+  model <- models[[model_name]]
+  
+  stopifnot(inherits(model, "fixest"))
+  
+  # Extract coefficients and standard errors
+  ct <- summary(model)$coeftable
+  
+  gravity_coefficients_r[[model_name]] <- tibble::tibble(
+    model = model_name,
+    term = rownames(ct),
+    estimate = unname(ct[, "Estimate"]),
+    std_error = unname(ct[, "Std. Error"]),
+    nobs = model$nobs,
+    adj_r2 = unname(
+      fixest::fitstat(model, "ar2")[[1]]
+    )
+  )
+}
+
+# Combine all four regression results
+gravity_coefficients_r <- dplyr::bind_rows(
+  gravity_coefficients_r
+)
+
+# Display results
+print(gravity_coefficients_r, n = Inf)
+
+# Export CSV
+write.csv(
+  gravity_coefficients_r,
+  file.path(work, "2-gravity_coefficients_r.csv"),
+  row.names = FALSE
+)
+
+# ende export Koeff
 
 coef(mod_debt)["ofc_source"]
 coef(mod_debt)["host::9006:ofc_source"]
 nobs(mod_debt)
-
-# -- FIXME debug
-
-# Regressionsstichprobe extrahieren
-df_debt <- df[fixest::obs(mod_debt), ]
-
-# Stichprobengröße kontrollieren
-nrow(df_debt)
-# Erwartet: 209823
-
-df_debt %>%
-  summarise(
-    across(
-      c(logpop_source, loggdppc_source, loggap_gdppc),
-      list(
-        mean = ~ mean(.x, na.rm = TRUE),
-        sd   = ~ sd(.x, na.rm = TRUE),
-        min  = ~ min(.x, na.rm = TRUE),
-        max  = ~ max(.x, na.rm = TRUE)
-      )
-    )
-  ) %>%
-  print(width = Inf)
-# ---
 
 etable(mod_eq, mod_debt)
 
@@ -232,7 +263,6 @@ df <- df %>%
     debtp    = if_else(debtp < 0, 0, debtp)
   )
 
-
 df %>%
   summarise(
     n = n(),
@@ -243,6 +273,7 @@ df %>%
     valid_eqp = sum(!is.na(eqp)),
     valid_debtp = sum(!is.na(debtp))
   )
+
 
 # FIXME debug
 gravity_vars <- read_work_data("gravity_vars")

@@ -1,0 +1,47 @@
+
+\begingroup
+\centering
+\begin{tabular}{lcc}
+   \tabularnewline \midrule \midrule
+   Dependent Variables: & logeqasset      & logdebtasset\\  
+   Model:               & (1)             & (2)\\  
+   \midrule
+   \emph{Variables}\\
+   logdist              & -0.5367$^{***}$ & -0.7839$^{***}$\\   
+                        & (0.0117)        & (0.0111)\\   
+   gap\_lon             & 0.0044$^{***}$  & 0.0042$^{***}$\\   
+                        & (0.0002)        & (0.0002)\\   
+   comlang\_off         & 0.4784$^{***}$  & 0.0428$^{**}$\\   
+                        & (0.0229)        & (0.0216)\\   
+   col45                & 0.5095$^{***}$  & 0.4621$^{***}$\\   
+                        & (0.0436)        & (0.0422)\\   
+   industrial           & 2.737$^{***}$   & 2.529$^{***}$\\   
+                        & (0.0293)        & (0.0279)\\   
+   loggap\_gdp          & -0.4127$^{***}$ & -0.2286$^{***}$\\   
+                        & (0.0055)        & (0.0052)\\   
+   loggap\_gdppc        & -0.2244$^{***}$ & -0.1450$^{***}$\\   
+                        & (0.0060)        & (0.0057)\\   
+   lat\_source          & 0.0023$^{***}$  & 0.0017$^{***}$\\   
+                        & (0.0002)        & (0.0002)\\   
+   landlocked\_source   & -0.2632$^{***}$ & -0.0257$^{*}$\\   
+                        & (0.0157)        & (0.0149)\\   
+   logpop\_source       & 0.6045$^{***}$  & 0.5410$^{***}$\\   
+                        & (0.0057)        & (0.0054)\\   
+   loggdppc\_source     & 1.273$^{***}$   & 1.173$^{***}$\\   
+                        & (0.0093)        & (0.0087)\\   
+   \midrule
+   \emph{Fixed-effects}\\
+   year                 & Yes             & Yes\\  
+   host                 & Yes             & Yes\\  
+   \midrule
+   \emph{Fit statistics}\\
+   Observations         & 119,575         & 124,163\\  
+   R$^2$                & 0.59276         & 0.63973\\  
+   Within R$^2$         & 0.36205         & 0.38772\\  
+   \midrule \midrule
+   \multicolumn{3}{l}{\emph{IID standard-errors in parentheses}}\\
+   \multicolumn{3}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+\end{tabular}
+\par\endgroup
+
+
