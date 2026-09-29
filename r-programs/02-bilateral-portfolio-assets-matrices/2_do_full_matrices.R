@@ -10,37 +10,78 @@ library(haven)
 library(fixest)
 library(stringr)
 library(purrr)
-
+library(modelsummary)
 
 # Helpers for reading/writing Stata files
 read_dta2  <- function(path) haven::read_dta(path)
 write_dta2 <- function(data, path) haven::write_dta(data, path)
 
 # Helper: repeated lead fill within group
-fill_with_next <- function(x, n = 1) {
+
+fill_with_prev <- function(x, n = 1) {
   out <- x
-  for (i in seq_len(n)) {
-    nxt <- dplyr::lead(out)
-    out[is.na(out) | out == 0] <- nxt[is.na(out) | out == 0]
+  if (length(out) < 2L) return(out)
+  
+  for (pass in seq_len(n)) {
+    for (i in 2:length(out)) {
+      if (!is.na(out[i]) && out[i] == 0) {
+        out[i] <- out[i - 1L]
+      }
+    }
   }
   out
 }
 
-# Helper: repeated lag fill within group
-fill_with_prev <- function(x, n = 1) {
+fill_with_next <- function(x, n = 1) {
   out <- x
-  for (i in seq_len(n)) {
-    prv <- dplyr::lag(out)
-    out[is.na(out) | out == 0] <- prv[is.na(out) | out == 0]
+  if (length(out) < 2L) return(out)
+  
+  for (pass in seq_len(n)) {
+    for (i in seq.int(length(out) - 1L, 1L, by = -1L)) {
+      if (!is.na(out[i]) && out[i] == 0) {
+        out[i] <- out[i + 1L]
+      }
+    }
   }
   out
+}
+
+
+stata_float <- function(x) {
+  readBin(
+    writeBin(as.double(x), raw(), size = 4),
+    what = "numeric",
+    n = length(x),
+    size = 4
+  )
 }
 
 # ------------------------------------------------------------------------------
 # Read main gravity dataset
 # ------------------------------------------------------------------------------
+df <- read_work_data("data_gravity_update")
 
-df <- read_dta(file.path(work, "data_gravity_update.dta"))
+df <- df %>%
+  filter(host != source, host != 1)
+
+df <- df %>%
+  mutate(
+    logdist = if_else(
+      source == 537 & host == 355 & year >= 2010,
+      9.820051,
+      logdist
+    ),
+    comlang_off = if_else(
+      source == 537 & host == 355 & year >= 2010,
+      0,
+      comlang_off
+    ),
+    col45 = if_else(
+      source == 537 & host == 355 & year >= 2010,
+      0,
+      col45
+    )
+  )
 
 # ------------------------------------------------------------------------------
 # Gravity-like model
@@ -50,9 +91,14 @@ df <- df %>%
   filter(host != source)
 
 # My definition of OFC for the regressions
+
 df <- df %>%
   mutate(
-    ofc_source = if_else(sifc_source == 1, 1, 0)
+    ofc_source = if_else(
+      coalesce(sifc_source, 0) == 1,
+      1,
+      0
+    )
   )
 
 # Add jurisdictions to OFC list
@@ -76,6 +122,7 @@ ofc_tbl <- df %>%
   transmute(host = source, ofc_host = ofc_source)
 
 df <- df %>%
+  mutate(host = as.numeric(host)) %>%
   left_join(ofc_tbl, by = "host") %>%
   mutate(
     ofc_host = if_else(ofc_host == 1, 1, 0),
@@ -93,15 +140,22 @@ df <- df %>%
     logeqasset = if_else(eqasset == 0, 0, logeqasset),
     logdebtasset = if_else(debtasset == 0, 0, logdebtasset)
   )
+
+# --- FIXME debug
+
+df %>%
+  summarise(
+    n = n(),
+    n_sources = n_distinct(source),
+    n_hosts = n_distinct(host),
+    n_years = n_distinct(year),
+    n_self = sum(source == host, na.rm = TRUE)
+  )
+#---
+
 # ------------------------------------------------------------------------------
 # Benchmark regressions
 # ------------------------------------------------------------------------------
-
-########## tests: NA?
-
-df2 <- df %>% filter(ofc_source == 0, ofc_host == 0)
-
-##################
 
 mod_eq_bench <- feols(
   logeqasset ~ logdist + gap_lon + comlang_off + col45 + industrial +
@@ -117,6 +171,7 @@ mod_debt_bench <- feols(
   data = df %>% filter(ofc_source == 0, ofc_host == 0)
 )
 
+etable(mod_eq_bench, mod_debt_bench)
 # Augmented regressions:
 # Stata: reg y ... year_* host_* _IofcXhos_1_*
 # In fixest, i(host, ofc_source) creates host-specific interaction effects
@@ -124,17 +179,48 @@ mod_eq <- feols(
   logeqasset ~ logdist + comlang_off + col45 + industrial +
     loggap_gdp + loggap_gdppc + ofc_source + lat_source +
     landlocked_source + logpop_source + loggdppc_source +
-    i(host, ofc_source, ref = 0) | year + host,
+    i(host, ofc_source) | year + host,
   data = df
 )
+
 
 mod_debt <- feols(
   logdebtasset ~ logdist + comlang_off + col45 + industrial +
     loggap_gdp + loggap_gdppc + ofc_source + lat_source +
     landlocked_source + logpop_source + loggdppc_source +
-    i(host, ofc_source, ref = 0) | year + host,
+    i(host, ofc_source, ref = 111) | year + host,
   data = df
 )
+
+coef(mod_debt)["ofc_source"]
+coef(mod_debt)["host::9006:ofc_source"]
+nobs(mod_debt)
+
+# -- FIXME debug
+
+# Regressionsstichprobe extrahieren
+df_debt <- df[fixest::obs(mod_debt), ]
+
+# Stichprobengröße kontrollieren
+nrow(df_debt)
+# Erwartet: 209823
+
+df_debt %>%
+  summarise(
+    across(
+      c(logpop_source, loggdppc_source, loggap_gdppc),
+      list(
+        mean = ~ mean(.x, na.rm = TRUE),
+        sd   = ~ sd(.x, na.rm = TRUE),
+        min  = ~ min(.x, na.rm = TRUE),
+        max  = ~ max(.x, na.rm = TRUE)
+      )
+    )
+  ) %>%
+  print(width = Inf)
+# ---
+
+etable(mod_eq, mod_debt)
 
 df <- df %>%
   mutate(
@@ -146,6 +232,74 @@ df <- df %>%
     debtp    = if_else(debtp < 0, 0, debtp)
   )
 
+
+df %>%
+  summarise(
+    n = n(),
+    n_sources = n_distinct(source),
+    n_hosts = n_distinct(host),
+    source_9994 = sum(source == 9994),
+    host_9999 = sum(host == 9999),
+    valid_eqp = sum(!is.na(eqp)),
+    valid_debtp = sum(!is.na(debtp))
+  )
+
+# FIXME debug
+gravity_vars <- read_work_data("gravity_vars")
+
+library(dplyr)
+library(tidyr)
+
+gravity_vars <- c(
+  "logdist", "comlang_off", "col45", "industrial",
+  "loggap_gdp", "loggap_gdppc", "ofc_source",
+  "lat_source", "landlocked_source",
+  "logpop_source", "loggdppc_source",
+  "year", "host"
+)
+
+# 1. Sind die neuen Host-9999-Zeilen alle ohne Vorhersage?
+df %>%
+  group_by(host == 9999) %>%
+  summarise(
+    n = n(),
+    valid_eqp = sum(!is.na(eqp)),
+    missing_eqp = sum(is.na(eqp)),
+    .groups = "drop"
+  )
+
+# 2. Fehlende Regressionsvariablen nach Host-Gruppe
+df %>%
+  mutate(host_group = if_else(host == 9999, "9999", "Other")) %>%
+  group_by(host_group) %>%
+  summarise(
+    across(all_of(gravity_vars), ~ sum(is.na(.x))),
+    .groups = "drop"
+  ) %>%
+  pivot_longer(
+    -host_group,
+    names_to = "variable",
+    values_to = "n_missing"
+  ) %>%
+  filter(n_missing > 0) %>%
+  arrange(host_group, desc(n_missing))
+
+# 3. Welche Hosts haben die meisten fehlenden Vorhersagen?
+df %>%
+  filter(is.na(eqp)) %>%
+  count(host, sort = TRUE) %>%
+  print(n = 30)
+
+df %>%
+  summarise(
+    n = n(),
+    missing_eqp = sum(is.na(eqp)),
+    missing_debtp = sum(is.na(debtp)),
+    valid_eqp = sum(!is.na(eqp)),
+    valid_debtp = sum(!is.na(debtp))
+  )
+#---
+
 # ------------------------------------------------------------------------------
 # Comparison of predicted shares and true shares
 # ------------------------------------------------------------------------------
@@ -155,14 +309,44 @@ df <- df %>%
   mutate(
     toteqalloc   = sum(eqasset[host != 983], na.rm = TRUE),
     totdebtalloc = sum(debtasset[host != 983], na.rm = TRUE),
-    shareeqalloc = if_else(toteqalloc == 0 | is.na(toteqalloc), 0, eqasset / toteqalloc),
-    sharedebtalloc = if_else(totdebtalloc == 0 | is.na(totdebtalloc), 0, debtasset / totdebtalloc),
+    #shareeqalloc = if_else(toteqalloc == 0 | is.na(toteqalloc), 0, eqasset / toteqalloc),
+    #sharedebtalloc = if_else(totdebtalloc == 0 | is.na(totdebtalloc), 0, debtasset / totdebtalloc),
+    shareeqalloc = if_else(host == 983,NA_real_,
+      if_else(
+        toteqalloc == 0 | is.na(toteqalloc),
+        0,
+        eqasset / toteqalloc
+      )
+    ),
+    sharedebtalloc = if_else(
+      host == 983,
+      NA_real_,
+      if_else(
+        totdebtalloc == 0 | is.na(totdebtalloc),
+        0,
+        debtasset / totdebtalloc
+      )
+    ),
     toteqp       = sum(eqp, na.rm = TRUE),
     totdebtp     = sum(debtp, na.rm = TRUE),
     shareeqp     = eqp / toteqp,
     sharedebtp   = debtp / totdebtp
   ) %>%
   ungroup()
+
+
+# FIXME DEBUG
+df %>%
+  filter(source == 112, year == 2007) %>%
+  select(host, eqp, debtp, shareeqp, sharedebtp) %>%
+  arrange(host) %>%
+  write.csv(
+    "gravity_source112_r.csv",
+    row.names = FALSE
+  )
+
+# ende 
+
 
 # ------------------------------------------------------------------------------
 # Allocation of confidential + unallocated claims
@@ -175,23 +359,37 @@ df <- df %>%
   )
 
 # Raw sums
+
 df <- df %>%
   group_by(source, year) %>%
   mutate(
-    toteqasset   = sum(eqasset, na.rm = TRUE),
-    totdebtasset = sum(debtasset, na.rm = TRUE)
+    toteqasset = stata_float(sum(eqasset, na.rm = TRUE)),
+    totdebtasset = stata_float(sum(debtasset, na.rm = TRUE))
   ) %>%
   ungroup()
 
+df %>%
+  filter(source == 1012, year == 2018) %>%
+  summarise(
+    bilateral_sum = sum(eqasset[host != 983], na.rm = TRUE),
+    host983 = sum(eqasset[host == 983], na.rm = TRUE),
+    total = sum(eqasset, na.rm = TRUE),
+    host111 = sum(eqasset[host == 111], na.rm = TRUE)
+  )
+
 # Merge CPIS aggregates
-toteq_update <- read_dta2(file.path(work, "data_toteq_update.dta")) %>%
+toteq_update <- read_work_data("data_toteq_update")
+toteq_update <- toteq_update %>%
   select(-any_of("cname"))
-totdebt_update <- read_dta2(file.path(work, "data_totdebt_update.dta")) %>%
+
+totdebt_update <- read_work_data("data_totdebt_update")
+totdebt_update <- totdebt_update %>%
   select(-any_of("cname"))
 
 df <- df %>%
   left_join(toteq_update, by = c("source", "year")) %>%
   left_join(totdebt_update, by = c("source", "year"))
+
 
 # Stata later uses sumeqasset and sumdebtasset
 df <- df %>%
@@ -255,6 +453,64 @@ df <- df %>%
   ) %>%
   ungroup()
 
+# FIXME debug
+
+df %>%
+  filter(source == 967, year %in% 2018:2021) %>%
+  group_by(year) %>%
+  summarise(
+    n_hosts = n(),
+    n_debtp = sum(!is.na(debtp)),
+    n_confidential = sum(confidentialdebt == 1, na.rm = TRUE),
+    n_confidential_predicted = sum(
+      confidentialdebt == 1 & !is.na(debtp),
+      na.rm = TRUE
+    ),
+    total_debtp = sum(debtp, na.rm = TRUE),
+    total_debtpconf = sum(debtpconf, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  print(n = Inf, width = Inf)
+
+# --- zwei
+
+df %>%
+  filter(
+    source == 967,
+    year == 2021,
+    is.na(debtp)
+  ) %>%
+  select(
+    host, hostname,
+    confidentialdebt,
+    logdist, comlang_off, col45, industrial,
+    loggap_gdp, loggap_gdppc,
+    ofc_source, lat_source, landlocked_source,
+    logpop_source, loggdppc_source
+  ) %>%
+  print(n = Inf, width = Inf)
+
+# --- drei 
+
+df %>%
+  filter(
+    source == 967,
+    year == 2021,
+    confidentialdebt == 1,
+    !is.na(debtp)
+  ) %>%
+  arrange(desc(debtp)) %>%
+  select(
+    host, hostname,
+    debtp, debtpconf,
+    sharedebtpconf,
+    logdebtp,
+    ofc_host
+  ) %>%
+  slice_head(n = 20) %>%
+  print(n = Inf, width = Inf)
+#---
+
 # Pull unallocated/confidential totals from host 983
 unalloc <- df %>%
   filter(host == 983) %>%
@@ -277,28 +533,72 @@ df <- df %>%
     augmdebtasset = if_else(source == 9999, augmdebtasset + sharedebtalloc * totunallocdebt, augmdebtasset)
   )
 
-write_dta2(df, file.path(work, "temp.dta"))
-write_dta2(df, file.path(work, "temp_30.dta"))
+
+saveRDS(df, file = file.path(work, "df1.rds"))
+
+#write_dta2(df, file.path(work, "temp.dta"))
+#write_dta2(df, file.path(work, "temp_30.dta"))
 
 # ------------------------------------------------------------------------------
 # Allocation of Cayman Islands non-bank sector
 # ------------------------------------------------------------------------------
+#df <- readRDS(file.path(work, "df1.rds"))
+#cayman_tic <- read_dta2(file.path(work2, "Cayman_TIC_Dec.dta"))
+cayman_tic <- read_work_data("Cayman_TIC_Dec")
+# test
+cayman_tic %>%
+  filter(source == 377, host == 111) %>%
+  arrange(year) %>%
+  select(year, eq_KY_TIC, debt_KY_TIC) %>%
+  print(n = Inf)
+###
 
-cayman_tic <- read_dta2(file.path(work, "Cayman_TIC_Dec.dta"))
+# --- FIXME debug
+
+df %>%
+  filter(
+    source == 967,
+    host == 1006,
+    year %in% 2018:2021
+  ) %>%
+  select(
+    year, cpis,
+    eqasset, debtasset,
+    confidentialeq, confidentialdebt,
+    eqp, debtp,
+    eqpconf, debtpconf,
+    toteqpconf, totdebtpconf,
+    shareeqpconf, sharedebtpconf,
+    totunalloceq, totunallocdebt,
+    unalloceq, unallocdebt,
+    augmeqasset, augmdebtasset
+  ) %>%
+  print(n = Inf, width = Inf)
+
+#---- ende
 
 df <- df %>%
-  full_join(cayman_tic, by = c("year", "source", "host"))
+  left_join(
+    cayman_tic,
+    by = c("year", "source", "host")
+  )
 
-# drop if _merge==2 in Stata means keep master + matched only
-# with full_join we simulate by filtering out rows only from using file
-# If needed, use left_join instead:
-df <- df %>%
-  left_join(cayman_tic, by = c("year", "source", "host"))
 
 df <- df %>%
   mutate(
-    augmeqasset   = if_else(source == 377 & host == 111 & augmeqasset < eq_KY_TIC, eq_KY_TIC, augmeqasset),
-    augmdebtasset = if_else(source == 377 & host == 111 & year < 2015, debt_KY_TIC, augmdebtasset)
+    augmeqasset = if_else(
+      source == 377 & host == 111 &
+        !is.na(eq_KY_TIC) &
+        (is.na(augmeqasset) | augmeqasset < eq_KY_TIC),
+      eq_KY_TIC,
+      augmeqasset
+    ),
+    augmdebtasset = if_else(
+      source == 377 & host == 111 &
+        year < 2015 & !is.na(debt_KY_TIC),
+      debt_KY_TIC,
+      augmdebtasset
+    )
   )
 
 # US share in Cayman assets
@@ -316,10 +616,51 @@ df <- df %>%
   arrange(source, host, year) %>%
   group_by(source, host) %>%
   mutate(
-    share_US_KY      = fill_with_next(share_US_KY, 14),
-    share_debt_US_KY = fill_with_next(share_debt_US_KY, 14)
+    # original replication
+    #share_US_KY      = fill_with_next(share_US_KY, 14),
+    # so wird statt dessen für jedes Jahr der vom Gravity-Modell prognostizierte US-Anteil eingesetzt
+    #share_US_KY = if_else(
+    #  source == 377 & host == 111 & year < 2015,
+    #  shareeqp,
+    #  share_US_KY
+    #),
+    #share_debt_US_KY = fill_with_next(share_debt_US_KY, 14)
+    share_US_KY = {
+      x <- share_US_KY
+      for (i in seq_len(14)) {
+        x <- dplyr::coalesce(x, dplyr::lead(x))
+      }
+      x
+    },
+    share_debt_US_KY = {
+      x <- share_debt_US_KY
+      for (i in seq_len(14)) {
+        x <- dplyr::coalesce(x, dplyr::lead(x))
+      }
+      x
+    }
   ) %>%
   ungroup()
+
+##### Kontrolle 1
+df %>%
+  filter(
+    source == 377,
+    host == 111,
+    year <= 2015
+  ) %>%
+  select(
+    year,
+    eq_KY_TIC,
+    augmeqasset,
+    shareeqp,
+    share_US_KY
+  ) %>%
+  arrange(year) %>%
+  print(n = Inf)
+#####
+
+
 
 caymantot <- df %>%
   filter(host == 111, source == 377, year >= 2001, year <= 2014) %>%
@@ -356,17 +697,21 @@ df <- df %>%
   ) %>%
   select(-caymantotdebt, -caymantoteq)
 
-write_dta2(df, file.path(work, "temp.dta"))
+saveRDS(df, file = file.path(work, "df2.rds"))
+#write_dta2(df, file.path(work, "temp.dta"))
 
 # ------------------------------------------------------------------------------
 # Allocation of other CPIS countries
 # ------------------------------------------------------------------------------
+df <- readRDS(file = file.path(work, "df2.rds")) # --- temp!
 
 df <- df %>%
   mutate(
     help_share_eq   = toteqasset / help_total_eq,
     help_share_debt = totdebtasset / help_total_debt
-  ) %>%
+  )
+
+df <- df %>%
   arrange(source, host, year)
 
 # Bahrain
@@ -376,7 +721,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 419, fill_with_next(.data[[hs]], 2), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -392,7 +738,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(
       !!hs := if_else(source == 316, fill_with_next(.data[[hs]], 2), .data[[hs]]),
       !!hs := if_else(source == 316, fill_with_prev(.data[[hs]], 1), .data[[hs]])
@@ -411,7 +758,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 823, fill_with_next(.data[[hs]], 3), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -427,7 +775,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 534, fill_with_next(.data[[hs]], 3), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -443,7 +792,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 443, fill_with_next(.data[[hs]], 2), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -459,7 +809,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 941, fill_with_next(.data[[hs]], 5), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -475,7 +826,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 273, fill_with_next(.data[[hs]], 2), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -490,7 +842,8 @@ for (x in c("eq", "debt")) {
   ta <- paste0("tot", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 377, fill_with_next(.data[[hs]], 1), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -505,7 +858,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 283, fill_with_prev(.data[[hs]], 1), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -521,7 +875,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 299, fill_with_prev(.data[[hs]], 1), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -530,6 +885,7 @@ for (x in c("eq", "debt")) {
     )
 }
 
+
 # Bahamas
 for (x in c("eq", "debt")) {
   hs <- paste0("help_share_", x)
@@ -537,7 +893,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 313, fill_with_prev(.data[[hs]], 1), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -546,6 +903,7 @@ for (x in c("eq", "debt")) {
     )
 }
 
+
 # Pakistan
 for (x in c("eq", "debt")) {
   hs <- paste0("help_share_", x)
@@ -553,7 +911,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 564, fill_with_next(.data[[hs]], 1), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -569,7 +928,8 @@ for (x in c("eq", "debt")) {
   aa <- paste0("augm", x, "asset")
   
   df <- df %>%
-    group_by(source) %>%
+    #group_by(source) %>%
+    group_by(source, host) %>%
     mutate(!!hs := if_else(source == 1012, fill_with_prev(.data[[hs]], 1), .data[[hs]])) %>%
     ungroup() %>%
     mutate(
@@ -582,28 +942,73 @@ for (x in c("eq", "debt")) {
 # Missing Netherlands SFIs
 # ------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------
+# Missing Netherlands SFIs
+# ------------------------------------------------------------------------------
+
 df <- df %>%
   mutate(
-    toteqasset   = if_else(source == 138 & year == 2001, toteqasset + 3286, toteqasset),
-    toteqasset   = if_else(source == 138 & year == 2002, toteqasset + 2601, toteqasset),
-    totdebtasset = if_else(source == 138 & year == 2001, totdebtasset + 20984, totdebtasset),
-    totdebtasset = if_else(source == 138 & year == 2002, totdebtasset + 16611, totdebtasset),
-    augmeqasset  = if_else(source == 138, toteqasset * shareeqalloc, augmeqasset),
-    augmdebtasset = if_else(source == 138, totdebtasset * sharedebtalloc, augmdebtasset)
+    toteqasset = if_else(
+      source == 138 & year == 2001,
+      toteqasset + 3286,
+      toteqasset
+    ),
+    toteqasset = if_else(
+      source == 138 & year == 2002,
+      toteqasset + 2601,
+      toteqasset
+    ),
+    totdebtasset = if_else(
+      source == 138 & year == 2001,
+      totdebtasset + 20984,
+      totdebtasset
+    ),
+    totdebtasset = if_else(
+      source == 138 & year == 2002,
+      totdebtasset + 16611,
+      totdebtasset
+    ),
+    augmeqasset = if_else(
+      source == 138,
+      toteqasset * shareeqalloc,
+      augmeqasset
+    ),
+    augmdebtasset = if_else(
+      source == 138,
+      totdebtasset * sharedebtalloc,
+      augmdebtasset
+    )
   )
 
-write_dta2(df, file.path(work, "temp.dta"))
+# DEBUG: Netherlands nach länderspezifischer Korrektur
+df %>%
+  filter(source == 138, year == 2021) %>%
+  select(
+    year, source, host,
+    eqasset, debtasset,
+    shareeqp, sharedebtp,
+    shareeqalloc, sharedebtalloc,
+    toteqasset, totdebtasset,
+    augmeqasset, augmdebtasset
+  ) %>%
+  write.csv(
+    file.path(work, "r_netherlands_after.csv"),
+    row.names = FALSE
+  )
+
+saveRDS(df, file = file.path(work, "df3.rds"))
+#write_dta2(df, file.path(work, "temp.dta"))
 
 # ------------------------------------------------------------------------------
 # Allocation of China
 # ------------------------------------------------------------------------------
 
-tic_china <- read_dta2(file.path(work, "TIC_China_Dec.dta"))
-imf_china <- read_dta2(file.path(work, "data_IMF_China.dta"))
+tic_china <- read_dta2(file.path(work2, "TIC_China_Dec.dta"))
+imf_china <- read_dta2(file.path(work2, "data_IMF_China.dta"))
 
 china <- tic_china %>%
   left_join(imf_china, by = "year") %>%
-  arrange(desc(year)) %>%
+  arrange(year) %>%
   mutate(
     growth_equity = eq_China_TIC / lead(eq_China_TIC),
     Equity_IMF = if_else(year < 2007, NA_real_, Equity_IMF)
@@ -634,24 +1039,69 @@ china <- china %>%
     ),
     reserves_China = share * Reserves_IMF,
     equity_ratio_TIC = eq_China_TIC / total_China_TIC,
-    totaleq_China_public = equity_ratio * reserves_China,
-    totaldebt_China_public = (1 - equity_ratio) * reserves_China,
+    totaleq_China_public = equity_ratio_TIC * reserves_China,
+    totaldebt_China_public = (1 - equity_ratio_TIC) * reserves_China,
     totaleq_China = equity_ratio_TIC * (reserves_China + Equity_IMF + Debt_IMF),
     totaldebt_China = (1 - equity_ratio_TIC) * (share * Reserves_IMF + Equity_IMF + Debt_IMF)
   ) %>%
   select(year, source, host, eq_China_TIC, debt_China_TIC, share, equity_ratio_TIC,
          starts_with("totaleq_China"), starts_with("totaldebt_China"), reserves_China)
 
-df <- df %>%
-  left_join(china, by = c("year", "source")) %>%
-  mutate(
-    toteqasset   = if_else(source == 924, totaleq_China, toteqasset),
-    totdebtasset = if_else(source == 924, totaldebt_China, totdebtasset),
-    useqassetchina       = if_else(source == 924, eq_China_TIC, NA_real_),
-    usdebtassetchina     = if_else(source == 924, debt_China_TIC, NA_real_),
-    nonuseqassetchina    = if_else(source == 924, toteqasset - useqassetchina, NA_real_),
-    nonusdebtassetchina  = if_else(source == 924, totdebtasset - usdebtassetchina, NA_real_)
-  )
+#df <- df %>%
+#  left_join(china, by = c("year", "source")) %>%
+#  mutate(
+#    toteqasset   = if_else(source == 924, totaleq_China, toteqasset),
+#    totdebtasset = if_else(source == 924, totaldebt_China, totdebtasset),
+#    useqassetchina       = if_else(source == 924, eq_China_TIC, NA_real_),
+#    usdebtassetchina     = if_else(source == 924, debt_China_TIC, NA_real_),
+#    nonuseqassetchina    = if_else(source == 924, toteqasset - useqassetchina, NA_real_),
+#    nonusdebtassetchina  = if_else(source == 924, totdebtasset - usdebtassetchina, NA_real_)
+#  )
+# China-Zeilen in df
+idx <- which(df$source == 924)
+
+# Passendes Jahr in china finden
+m <- match(df$year[idx], china$year)
+
+# Öffentliche chinesische Portfolioanlagen übernehmen
+df$totaleq_China_public <- NA_real_
+df$totaldebt_China_public <- NA_real_
+
+df$totaleq_China_public[idx] <-
+  china$totaleq_China_public[m]
+
+df$totaldebt_China_public[idx] <-
+  china$totaldebt_China_public[m]
+
+# Prüfen, ob alle Jahre gefunden wurden
+stopifnot(!anyNA(m))
+
+# China-Totals einsetzen
+df$toteqasset[idx]   <- china$totaleq_China[m]
+df$totdebtasset[idx] <- china$totaldebt_China[m]
+
+# Neue Variablen anlegen
+df$useqassetchina      <- NA_real_
+df$usdebtassetchina    <- NA_real_
+df$nonuseqassetchina   <- NA_real_
+df$nonusdebtassetchina <- NA_real_
+
+# US-Assets aus TIC
+df$useqassetchina[idx]   <- china$eq_China_TIC[m]
+df$usdebtassetchina[idx] <- china$debt_China_TIC[m]
+
+# Non-US-Assets als Residuum
+df$nonuseqassetchina[idx] <-
+  df$toteqasset[idx] - df$useqassetchina[idx]
+
+df$nonusdebtassetchina[idx] <-
+  df$totdebtasset[idx] - df$usdebtassetchina[idx]
+
+rm(idx, m)
+gc()
+
+
+
 
 sefernonus <- df %>%
   filter(source == 9999, host != 111, host != 924) %>%
@@ -679,8 +1129,10 @@ df <- df %>%
     -nonusdebtassetchina, -nonuseqassetchina,
     -usdebtassetchina, -useqassetchina,
     -shareeqsefernonus, -sharedebtsefernonus,
-    -matches("_TIC$"), -share
+    -matches("_TIC$")
   )
+
+saveRDS(df, file = file.path(work, "df-with-china.rds"))
 
 # ------------------------------------------------------------------------------
 # Allocation of Middle East oil exporters
@@ -690,14 +1142,14 @@ df <- df %>%
 # Some variable names in the original Stata code are inconsistent.
 # Adjust if needed to match your actual .dta files.
 
-tic_me <- read_dta2(file.path(work, "TIC_update_middleast.dta"))
-bertaut_me <- read_dta2(file.path(work, "Bertaut_Judson_middleeast_Dec.dta"))
+tic_me <- read_dta2(file.path(work2, "TIC_update_middleast.dta"))
+bertaut_me <- read_dta2(file.path(work2, "Bertaut_Judson_middleeast_Dec.dta"))
 
 middle_east <- bind_rows(tic_me, bertaut_me) %>%
   select(-any_of(c("flag", "country_code", "month"))) %>%
   mutate(
     source = case_when(
-      country == " Middle Eastern Oil Exporters" ~ 4566,
+      country == " Middle Eastern Oil Exporters" & year <= 2010 ~ 4566,
       country == "Bahrain" & year > 2010 ~ 419,
       country == "Iran" & year > 2010 ~ 429,
       country == "Iraq" & year > 2010 ~ 433,
@@ -706,11 +1158,10 @@ middle_east <- bind_rows(tic_me, bertaut_me) %>%
       country == "Qatar" & year > 2010 ~ 453,
       country == "United Arab Emirates" & year > 2010 ~ 466,
       country == "Saudi Arabia" & year > 2010 ~ 456,
-      country == " Middle Eastern Oil Exporters" & year > 2010 ~ NA_real_,
-      TRUE ~ source
+      TRUE ~ NA_real_
     )
   ) %>%
-  filter(!is.na(source)) %>%
+  filter(!is.na(source))%>%
   group_by(year) %>%
   summarise(
     Total  = sum(Total, na.rm = TRUE),
@@ -718,11 +1169,11 @@ middle_east <- bind_rows(tic_me, bertaut_me) %>%
     Debtl  = sum(Debtl, na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  left_join(read_dta2(file.path(work, "adjust_period.dta")), by = "year") %>%
+  left_join(read_dta2(file.path(work2, "adjust_period.dta")), by = "year") %>%
   mutate(
     Equity = if_else(year > 2010, Equity * adj_eq, Equity)
   ) %>%
-  left_join(read_dta2(file.path(work, "shortterm_ratio_FOI.dta")), by = "year") %>%
+  left_join(read_dta2(file.path(work2, "shortterm_ratio_FOI.dta")), by = "year") %>%
   rename(ratio_shortlong = short_long_ratio) %>%
   mutate(
     Debt_est  = Debtl + (ratio_shortlong * (Debtl + Equity)),
@@ -809,14 +1260,15 @@ df <- df %>%
 # Allocation of other non-CPIS
 # ------------------------------------------------------------------------------
 
-ewn_update <- read_dta2(file.path(work, "data_ewn_update.dta")) %>%
+ewn_update <- read_dta2(file.path(work2, "data_ewn_update.dta")) %>%
   rename(ifscode = source) %>%
-  left_join(read_dta2(file.path(work, "iso_ifscode.dta")), by = "ifscode") %>%
+  left_join(read_dta2(file.path(work2, "iso_ifscode.dta")), by = "ifscode") %>%
   filter(!is.na(our_code) | ifscode == 355) %>%
   mutate(our_code = if_else(ifscode == 355, 355, our_code)) %>%
   rename(source = our_code)
 
-write_dta2(ewn_update, file.path(work, "data_ewn_update_ifs.dta"))
+saveRDS(ewn_update, file = file.path(work, "data_ewn_update_ifs.rds"))
+#write_dta2(ewn_update, file.path(work, "data_ewn_update_ifs.dta"))
 
 df <- df %>%
   left_join(ewn_update, by = c("source", "year")) %>%
@@ -824,8 +1276,8 @@ df <- df %>%
   rename(ewn22_source = ewn22) %>%
   mutate(
     aportif_debt = if_else(is.na(aportif_debt) & !is.na(adebt), 0.2 * adebt, aportif_debt),
-    toteqasset = if_else(cpis != 1 & !source %in% c(924, 449, 453, 456, 466, 429, 433), aequity, toteqasset),
-    totdebtasset = if_else(cpis != 1 & !source %in% c(924, 449, 453, 456, 466, 429, 433), aportif_debt, totdebtasset)
+    toteqasset = if_else((is.na(cpis) | cpis != 1) & !source %in% c(924, 449, 453, 456, 466, 429, 433), aequity, toteqasset),
+    totdebtasset = if_else((is.na(cpis) | cpis != 1) & !source %in% c(924, 449, 453, 456, 466, 429, 433), aportif_debt, totdebtasset)
   )
 
 derived <- df %>%
@@ -840,14 +1292,46 @@ derived <- df %>%
 df <- df %>%
   left_join(derived, by = c("source", "year")) %>%
   mutate(
-    toteqasset = if_else(cpis != 1 & !source %in% c(924, 449, 453, 456, 429, 433, 466, 9998) & is.na(aequity), augmeqliab, toteqasset),
-    totdebtasset = if_else(cpis != 1 & !source %in% c(924, 449, 453, 456, 466, 429, 433, 9998) & is.na(aportif_debt), augmdebtliab, totdebtasset),
-    augmeqasset = if_else(cpis != 1 & !source %in% c(924, 449, 453, 456, 466, 429, 433), shareeqp * toteqasset, augmeqasset),
-    augmdebtasset = if_else(cpis != 1 & !source %in% c(924, 449, 453, 456, 466, 429, 433), sharedebtp * totdebtasset, augmdebtasset)
+    toteqasset = if_else((is.na(cpis) | cpis != 1) & !source %in% c(924, 449, 453, 456, 429, 433, 466, 9998) & is.na(aequity), augmeqliab, toteqasset),
+    totdebtasset = if_else((is.na(cpis) | cpis != 1) & !source %in% c(924, 449, 453, 456, 466, 429, 433, 9998) & is.na(aportif_debt), augmdebtliab, totdebtasset),
+    augmeqasset = if_else((is.na(cpis) | cpis != 1) & !source %in% c(924, 449, 453, 456, 466, 429, 433), shareeqp * toteqasset, augmeqasset),
+    augmdebtasset = if_else((is.na(cpis) | cpis != 1) & !source %in% c(924, 449, 453, 456, 466, 429, 433), sharedebtp * totdebtasset, augmdebtasset)
   )
 
+
+# DEBUG: Kosovo nach Non-CPIS-Allokation
+df %>%
+  filter(source == 967, year %in% 2018:2021) %>%
+  select(
+    year, source, host, cpis,
+    debtasset, totdebtasset,
+    debtp, sharedebtp,
+    augmdebtasset
+  ) %>%
+  write.csv(
+    file.path(work, "r_kosovo_stage2.csv"),
+    row.names = FALSE
+  )
+
+#--- FIXME debug
+
+df %>%
+  filter(
+    source == 967,
+    host == 1006,
+    year %in% 2018:2021
+  ) %>%
+  select(
+    year, cpis,
+    toteqasset, totdebtasset,
+    shareeqp, sharedebtp,
+    augmeqasset, augmdebtasset
+  ) %>%
+  print(n = Inf, width = Inf)
+#---
+
 # Reserves of non-CPIS countries
-missingreserve <- read_dta2(file.path(work, "data_foreignexchange_update.dta")) %>%
+missingreserve <- read_dta2(file.path(work2, "data_foreignexchange_update.dta")) %>%
   filter(!source %in% c(163, 309, 758, 759, 967))
 
 df <- df %>%
@@ -857,9 +1341,27 @@ df <- df %>%
     eqreserveIFS   = 0.01 * reserveIFS
   )
 
+#---FIXME debug
+df %>%
+  distinct(source, year, cpis, reserveIFS, eqreserveIFS, debtreserveIFS) %>%
+  group_by(year) %>%
+  summarise(
+    n_cpis_0 = sum(cpis == 0, na.rm = TRUE),
+    n_cpis_1 = sum(cpis == 1, na.rm = TRUE),
+    n_cpis_NA = sum(is.na(cpis)),
+    
+    n_reserve = sum(!is.na(reserveIFS)),
+    n_eqreserve = sum(!is.na(eqreserveIFS)),
+    n_debtreserve = sum(!is.na(debtreserveIFS)),
+    
+    .groups = "drop"
+  ) %>%
+  print(n = Inf)
+# ---
+
 missingreserve2 <- df %>%
   distinct(source, year, cpis, eqreserveIFS, debtreserveIFS) %>%
-  filter(!cpis == 1,
+  filter(is.na(cpis) | cpis != 1,
          !source %in% c(924, 449, 453, 456, 466, 433, 429)) %>%
   group_by(year) %>%
   summarise(
@@ -867,6 +1369,27 @@ missingreserve2 <- df %>%
     missingdebtres = sum(debtreserveIFS, na.rm = TRUE),
     .groups = "drop"
   )
+
+#---FIXME debug
+print(missingreserve2, n = Inf, digits = 12)
+
+
+df %>%
+  distinct(source, year, cpis, eqreserveIFS, debtreserveIFS) %>%
+  filter(
+    is.na(cpis) | cpis != 1,
+    !source %in% c(924, 449, 453, 456, 466, 433, 429)
+  ) %>%
+  group_by(year) %>%
+  summarise(
+    countries = n(),
+    countries_with_reserves = sum(!is.na(eqreserveIFS)),
+    equity = sum(eqreserveIFS, na.rm = TRUE) / 1000,
+    debt = sum(debtreserveIFS, na.rm = TRUE) / 1000,
+    .groups = "drop"
+  ) %>%
+  print(n = Inf)
+#---
 
 df <- df %>%
   left_join(missingreserve2, by = "year")
@@ -890,6 +1413,29 @@ df <- df %>%
     otherdebtreserve = sharedebtsefer * missingdebtres
   )
 
+# --- FIXME debug
+
+reserve_factors <- df %>%
+  group_by(year) %>%
+  summarise(
+    n_eq_shares = sum(!is.na(shareeqsefer)),
+    n_debt_shares = sum(!is.na(sharedebtsefer)),
+    
+    eq_share_sum = sum(shareeqsefer, na.rm = TRUE),
+    debt_share_sum = sum(sharedebtsefer, na.rm = TRUE),
+    
+    n_missing_eq = sum(!is.na(missingeqres)),
+    n_missing_debt = sum(!is.na(missingdebtres)),
+    
+    missing_eq = first(missingeqres) / 1000,
+    missing_debt = first(missingdebtres) / 1000,
+    
+    .groups = "drop"
+  )
+
+print(reserve_factors, n = Inf, digits = 12)
+# --
+
 otherreserve <- df %>%
   distinct(host, year, othereqreserve, otherdebtreserve) %>%
   filter(!is.na(host)) %>%
@@ -907,7 +1453,7 @@ df <- bind_rows(df, otherreserve)
 # EWNII and derived liabilities
 # ------------------------------------------------------------------------------
 
-ewn22_host <- read_dta2(file.path(work, "data_ewn_update_ifs.dta")) %>%
+ewn22_host <- read_dta2(file.path(work2, "data_ewn_update_ifs.dta")) %>%
   rename(host = source) %>%
   select(year, host, lequity, lportif_debt, ewn22)
 
@@ -938,6 +1484,29 @@ df <- df %>%
     debtliab_host = if_else(host == 138 & year < 2003, lportif_debt_host + ldebt_SFI, debtliab_host)
   )
 
+# FIXME debug
+
+
+df %>%
+  filter(
+    year == 2007,
+    source == 112,
+    host %in% c(815, 1003)
+  ) %>%
+  select(
+    year, source, host,
+    eqasset, debtasset,
+    eqp, debtp,
+    shareeqp, sharedebtp,
+    augmeqasset, augmdebtasset
+  ) %>%
+  write.csv(
+    "source112_components_r.csv",
+    row.names = FALSE
+  )
+
+#--- ende
+
 # Cayman liabilities correction
 KY_eqliab <- df %>%
   filter(source == 377) %>%
@@ -956,11 +1525,11 @@ KY_eqliab <- df %>%
     host = source
   ) %>%
   select(year, host, eqliab_KY, totliab_banks) %>%
-  left_join(read_dta2(file.path(work, "KY_banks.dta")), by = c("year", "host")) %>%
+  left_join(read_dta2(file.path(work2, "KY_banks.dta")), by = c("year", "host")) %>%
   mutate(
     totliab_banks = if_else(year > 2014, KY_assets_bank, totliab_banks)
   ) %>%
-  left_join(read_dta2(file.path(work, "KY_liab_nfc.dta")), by = "year") %>%
+  left_join(read_dta2(file.path(work2, "KY_liab_nfc.dta")), by = "year") %>%
   mutate(
     eqliab_nfc = eqliab_nfc / 1e6,
     eqliab_KY = eqliab_KY - totliab_banks + eqliab_nfc
@@ -989,7 +1558,7 @@ df <- df %>%
   )
 
 # International organizations
-bis_io <- read_dta2(file.path(work, "BIS_total_debt_IO.dta"))
+bis_io <- read_dta2(file.path(work2, "BIS_total_debt_IO.dta"))
 
 df <- df %>%
   left_join(bis_io, by = c("year", "host")) %>%
@@ -1011,6 +1580,29 @@ df <- df %>%
     eqliab_host = if_else(is.na(eqliab_host) & !host %in% c(983, 9998, 9999), derivedeqliab_host, eqliab_host),
     debtliab_host = if_else(is.na(debtliab_host) & !host %in% c(983, 9998, 9999), deriveddebtliab_host, debtliab_host)
   )
+
+### FIXME debug
+
+df %>%
+  filter(
+    year == 2007,
+    source == 112,
+    host %in% c(815, 1003)
+  ) %>%
+  select(
+    year, source, host,
+    eqasset, debtasset,
+    eqp, debtp,
+    shareeqp, sharedebtp,
+    augmeqasset, augmdebtasset
+  ) %>%
+  write.csv(
+    "source112_components_r.csv",
+    row.names = FALSE
+  )
+
+
+# ende ---
 
 # Bring host liability data back to source countries
 liab <- df %>%
@@ -1041,7 +1633,8 @@ df <- df %>%
     gapdebt_source  = debtliab_source - deriveddebtliab_source
   )
 
-write_dta2(df, file.path(work, "data_full_matrices.dta"))
+saveRDS(df, file = file.path(work, "data_full_matrices.rds"))
+#write_dta2(df, file.path(work, "data_full_matrices.dta"))
 
 # ------------------------------------------------------------------------------
 # Gap checks
@@ -1073,4 +1666,7 @@ gap_source <- df %>%
     .groups = "drop"
   )
 
-write_dta2(gap_source, file.path(work, "gap_source_update.dta"))
+saveRDS(gap_source, file = file.path(work, "gap_source_update.rds"))
+saveRDS(gap_host, file = file.path(work, "gap_host_update.rds"))
+
+#write_dta2(gap_source, file.path(work, "gap_source_update.dta"))
