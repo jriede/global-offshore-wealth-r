@@ -2,6 +2,7 @@ STATA to R port of the replication package for ("Global Offshore Wealth, 2001 - 
 
 # Prerequisites
 
+
 ## FGZ raw data
 You need the original repository, so download it first.
 
