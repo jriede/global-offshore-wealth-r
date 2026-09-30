@@ -2,9 +2,8 @@ library(readxl)
 library(readr)
 library(purrr)
 
-# Pfade: gegebenenfalls an deine Projektstruktur anpassen
+# Pfade...
 input_file <- file.path(raw, "FGZ-raw-data.xlsx")
-
 output_dir <- file.path(
   work,
   "07-sensitivity-analysis",

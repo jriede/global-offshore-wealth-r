@@ -560,6 +560,16 @@ ggsave(
   height = 5
 )
 
+ggsave(
+  filename = file.path(
+    fig,
+    "shche-22.png"
+  ),
+  plot = graph_22,
+  width = 8,
+  height = 5
+)
+
 saveRDS(
   bis0607,
   file.path(work, "bis-graph-0607.rds")
@@ -599,3 +609,4 @@ bis22 %>%
     row.names = FALSE,
     na = ""
   )
+

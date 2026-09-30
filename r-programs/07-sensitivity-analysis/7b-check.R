@@ -2,7 +2,7 @@
 # addendum zu 7b
 # test, ob die Länderwerte der Baseline aus der Sensitivitätsanalyse (7b) mit
 # der ursprünglichen Replikation (aus 6b) übereinstimmen
-# in 7b-sens-cou-alloc übernommen, läuft aber auch eigenständig
+# in 7b übernommen, läuft aber auch eigenständig
 # -------------------------
 library(dplyr)
 library(readr)

@@ -279,6 +279,16 @@ ggsave(
   height = 5
 )
 
+ggsave(
+  filename = file.path(
+    fig,
+    "update-swiss-fiduciary-87-22.png"
+  ),
+  plot = fig_fiduciary,
+  width = 7,
+  height = 5
+)
+
 
 # ==============================================================================
 # III ---- Rich and developing countries
@@ -647,6 +657,12 @@ ggsave(
   height = 5
 )
 
+ggsave(
+  filename = file.path(fig, "update-swiss-fiduciary-87-22.png"),
+  plot = fig_fiduciary,
+  width = 7,
+  height = 5
+)
 
 # ------------------------------------------------------------------------------
 # IX.2 Plot data

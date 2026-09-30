@@ -153,7 +153,14 @@ df %>%
     n_self = sum(source == host, na.rm = TRUE)
   )
 #---
+# --- output für die regressionstabelle
 
+write.csv(
+  df,
+  file = file.path(tables, "2-gravity_regression_data.csv"),
+  row.names = FALSE
+)
+#---
 # ------------------------------------------------------------------------------
 # Benchmark regressions
 # ------------------------------------------------------------------------------
@@ -197,6 +204,7 @@ mod_debt <- feols(
   data = df
 )
 etable(mod_eq, mod_debt, file = file.path(work, "2-reg-etable-mod.txt"))
+etable(mod_eq, mod_debt)
 
 
 # Schätzungen sind hier komplett. 
@@ -207,43 +215,42 @@ etable(mod_eq, mod_debt, file = file.path(work, "2-reg-etable-mod.txt"))
 # Export gravity regression coefficients
 # ============================================================
 
-gravity_coefficients_r <- list()
+# Export gravity regression coefficients
 
-for (model_name in names(models)) {
+gravity_coefficients_r <- lapply(names(models), function(model_name) {
   
-  model <- models[[model_name]]
+  fit <- models[[model_name]]
   
-  stopifnot(inherits(model, "fixest"))
+  stopifnot(inherits(fit, "fixest"))
   
-  # Extract coefficients and standard errors
-  ct <- summary(model)$coeftable
+  ct <- summary(fit)$coeftable
   
-  gravity_coefficients_r[[model_name]] <- tibble::tibble(
+  tibble::tibble(
     model = model_name,
     term = rownames(ct),
-    estimate = unname(ct[, "Estimate"]),
-    std_error = unname(ct[, "Std. Error"]),
-    nobs = model$nobs,
-    adj_r2 = unname(
-      fixest::fitstat(model, "ar2")[[1]]
+    estimate = as.numeric(ct[, "Estimate"]),
+    std_error = as.numeric(ct[, "Std. Error"]),
+    nobs = as.integer(fit[["nobs"]]),
+    adj_r2 = as.numeric(
+      fixest::fitstat(fit, "ar2")[[1]]
     )
   )
-}
+})
 
-# Combine all four regression results
 gravity_coefficients_r <- dplyr::bind_rows(
   gravity_coefficients_r
 )
 
-# Display results
-print(gravity_coefficients_r, n = Inf)
+print(gravity_coefficients_r, n = 15)
 
-# Export CSV
+table(gravity_coefficients_r$model)
+
 write.csv(
   gravity_coefficients_r,
   file.path(work, "2-gravity_coefficients_r.csv"),
   row.names = FALSE
 )
+
 
 # ende export Koeff
 

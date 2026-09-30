@@ -104,9 +104,6 @@ plot_country_offshore <- function(
       shape = point_shape,
       size = 2.3
     ) +
-    scale_x_continuous(
-      breaks = 2001:2022
-    ) +
     scale_y_continuous(
       breaks = y_breaks,
       labels = function(x) paste0(x, "%")
@@ -120,22 +117,23 @@ plot_country_offshore <- function(
       )
     ) +
     theme_minimal() +
+    
+    scale_x_continuous(
+      name = "Year",
+      breaks = seq(2001, 2021, by = 2),
+      limits = c(2000.5, 2021.5)
+    ) +
     theme(
-      legend.position = "none",
-      panel.grid.minor = element_blank(),
       axis.text.x = element_text(
-        angle = 90,
-        hjust = 1,
-        vjust = 0.5,
-        size = 8
+        angle = 0,
+        hjust = 0.5
       ),
-      axis.text.y = element_text(
-        size = 8
-      ),
-      axis.title.y = element_text(
-        size = 9
-      )
+      legend.position = "bottom",
+      legend.direction = "horizontal",
+      legend.title = element_blank()
     )
+  
+  
   
   ggsave(
     file.path(
@@ -143,7 +141,7 @@ plot_country_offshore <- function(
       filename
     ),
     plot = p,
-    device = "pdf",
+    device = "png",
     width = 7,
     height = 5
   )
@@ -434,19 +432,22 @@ p_ajz <- ggplot(
     fill = NULL
   ) +
   theme_minimal() +
+  
+  scale_x_continuous(
+    name = "Year",
+    breaks = seq(2001, 2021, by = 2),
+    limits = c(2000.5, 2021.5)
+  ) 
   theme(
     axis.text.x = element_text(
-      angle = 90,
-      hjust = 1,
-      vjust = 0.5,
-      size = 8
+      angle = 0,
+      hjust = 0.5
     ),
-    legend.position = "top",
-    legend.text = element_text(
-      size = 8
-    ),
-    panel.grid.minor = element_blank()
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_blank()
   )
+
 
 
 ggsave(
@@ -459,6 +460,15 @@ ggsave(
   height = 6
 )
 
+ggsave(
+  file.path(
+    fig,
+    "offshore-gdp-AJZvsFGZ.png"
+  ),
+  p_ajz,
+  width = 10,
+  height = 6
+)
 
 # ==============================================================================
 # III ---- Offshore Wealth in % of GDP: 2007 vs 2021
@@ -616,16 +626,20 @@ p_comparison <- ggplot(
     y = "share of GDP",
     fill = NULL
   ) +
+  
   theme_minimal() +
+  scale_x_discrete(
+    name = "Country"
+  ) +
   theme(
     axis.text.x = element_text(
-      angle = 90,
+      angle = 45,
       hjust = 1,
-      vjust = 0.5,
-      size = 8
+      vjust = 1
     ),
-    legend.position = "top",
-    panel.grid.minor = element_blank()
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_blank()
   )
 
 
@@ -633,6 +647,16 @@ ggsave(
   file.path(
     fig,
     "countries-offshore-gdp-2007-2021.pdf"
+  ),
+  p_comparison,
+  width = 11,
+  height = 6
+)
+
+ggsave(
+  file.path(
+    fig,
+    "countries-offshore-gdp-2007-2021.png"
   ),
   p_comparison,
   width = 11,
@@ -714,21 +738,43 @@ p_world <- ggplot(
     y = "% of world GDP"
   ) +
   theme_minimal() +
+  
+  scale_x_continuous(
+    name = "Year",
+    breaks = seq(2001, 2021, by = 2),
+    limits = c(2000.5, 2021.5)
+  ) +
+  scale_x_continuous(
+    name = "Year",
+    breaks = seq(2001, 2021, by = 2),
+    limits = c(2000.5, 2021.5)
+  ) +
   theme(
     axis.text.x = element_text(
-      angle = 90,
-      hjust = 1,
-      vjust = 0.5,
-      size = 8
+      angle = 0,
+      hjust = 0.5
     ),
-    panel.grid.minor = element_blank()
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_blank()
   )
+
 
 
 ggsave(
   file.path(
     fig,
     "world-offshore-gdp-2001-2021.pdf"
+  ),
+  p_world,
+  width = 7,
+  height = 5
+)
+
+ggsave(
+  file.path(
+    fig,
+    "world-offshore-gdp-2001-2021.png"
   ),
   p_world,
   width = 7,
@@ -845,25 +891,37 @@ p_location <- ggplot(
     shape = NULL
   ) +
   theme_minimal() +
+  
+  scale_x_continuous(
+    name = "Year",
+    breaks = seq(2001, 2021, by = 2),
+    limits = c(2000.5, 2021.5)
+  ) +
+  
   theme(
     axis.text.x = element_text(
-      angle = 90,
-      hjust = 1,
-      vjust = 0.5,
-      size = 8
+      angle = 0,
+      hjust = 0.5
     ),
-    legend.position = "right",
-    legend.text = element_text(
-      size = 8
-    ),
-    panel.grid.minor = element_blank()
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_blank()
   )
-
 
 ggsave(
   file.path(
     fig,
     "offshore-location-global-wealth.pdf"
+  ),
+  p_location,
+  width = 7,
+  height = 5
+)
+
+ggsave(
+  file.path(
+    fig,
+    "offshore-location-global-wealth.png"
   ),
   p_location,
   width = 7,
@@ -1013,15 +1071,20 @@ p_world_location <- ggplot(
     shape = NULL
   ) +
   theme_minimal() +
+  
+  scale_x_continuous(
+    name = "Year",
+    breaks = seq(2001, 2021, by = 2),
+    limits = c(2000.5, 2021.5)
+  ) +
   theme(
     axis.text.x = element_text(
-      angle = 90,
-      hjust = 1,
-      vjust = 0.5,
-      size = 8
+      angle = 0,
+      hjust = 0.5
     ),
-    legend.position = "right",
-    panel.grid.minor = element_blank()
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_blank()
   )
 
 
@@ -1035,6 +1098,15 @@ ggsave(
   height = 5
 )
 
+ggsave(
+  file.path(
+    fig,
+    "offshore_location_world_gdp.png"
+  ),
+  p_world_location,
+  width = 7,
+  height = 5
+)
 
 # ==============================================================================
 # VII ---- Offshore wealth owned by income-country groups
@@ -1311,16 +1383,22 @@ p_income_total <- ggplot(
     shape = NULL
   ) +
   theme_minimal() +
+  
+  scale_x_continuous(
+    name = "Year",
+    breaks = seq(2001, 2021, by = 2),
+    limits = c(2000.5, 2021.5)
+  ) +
   theme(
     axis.text.x = element_text(
-      angle = 90,
-      hjust = 1,
-      vjust = 0.5,
-      size = 8
+      angle = 0,
+      hjust = 0.5
     ),
-    legend.position = "right",
-    panel.grid.minor = element_blank()
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_blank()
   )
+
 
 
 ggsave(
@@ -1333,6 +1411,15 @@ ggsave(
   height = 5
 )
 
+ggsave(
+  file.path(
+    fig,
+    "ofw-owned-income-level-total-ofw.png"
+  ),
+  p_income_total,
+  width = 7,
+  height = 5
+)
 
 # ==============================================================================
 # VII.2 ---- Offshore wealth as % of world GDP
@@ -1397,16 +1484,22 @@ p_income_gdp <- ggplot(
     shape = NULL
   ) +
   theme_minimal() +
+  
+  scale_x_continuous(
+    name = "Year",
+    breaks = seq(2001, 2021, by = 2),
+    limits = c(2000.5, 2021.5)
+  ) +
   theme(
     axis.text.x = element_text(
-      angle = 90,
-      hjust = 1,
-      vjust = 0.5,
-      size = 8
+      angle = 0,
+      hjust = 0.5
     ),
-    legend.position = "right",
-    panel.grid.minor = element_blank()
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_blank()
   )
+
 
 
 ggsave(
@@ -1419,6 +1512,15 @@ ggsave(
   height = 5
 )
 
+ggsave(
+  file.path(
+    fig,
+    "ofw_owned_incomelevel_gdp.png"
+  ),
+  p_income_gdp,
+  width = 7,
+  height = 5
+)
 
 # ==============================================================================
 # VII.3 ---- GDP shares by income-country group
@@ -1483,15 +1585,20 @@ p_income_world_gdp <- ggplot(
     shape = NULL
   ) +
   theme_minimal() +
+  
+  scale_x_continuous(
+    name = "Year",
+    breaks = seq(2001, 2021, by = 2),
+    limits = c(2000.5, 2021.5)
+  ) +
   theme(
     axis.text.x = element_text(
-      angle = 90,
-      hjust = 1,
-      vjust = 0.5,
-      size = 8
+      angle = 0,
+      hjust = 0.5
     ),
-    legend.position = "right",
-    panel.grid.minor = element_blank()
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_blank()
   )
 
 
@@ -1505,6 +1612,15 @@ ggsave(
   height = 5
 )
 
+ggsave(
+  file.path(
+    fig,
+    "share-gdp-income-country-groups.png"
+  ),
+  p_income_world_gdp,
+  width = 7,
+  height = 5
+)
 
 # ==============================================================================
 # VIII ---- Finished

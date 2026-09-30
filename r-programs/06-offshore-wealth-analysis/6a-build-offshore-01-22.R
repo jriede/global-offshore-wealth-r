@@ -1814,6 +1814,7 @@ for (x in 2003:2020) {
     )
   
   saveRDS(offshore_x, file = file.path(work, paste0("offshore",x,".rds")))
+  write.csv(offshore_x,file = file.path(work, paste0("offshore", x, ".csv")),row.names = FALSE)
   
 }
 
@@ -2000,6 +2001,7 @@ for (i in boundary_years) {
     )
   
   saveRDS(offshore_i, file = file.path(work, paste0("offshore",i,".rds")))
+  write.csv(offshore_i,file = file.path(work, paste0("offshore", i, ".csv")),row.names = FALSE)
   
 }
 
