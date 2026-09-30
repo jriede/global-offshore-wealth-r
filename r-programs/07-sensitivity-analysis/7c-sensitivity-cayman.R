@@ -1,3 +1,6 @@
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # 7c – Sensitivity of pre-2015 Cayman portfolio equity and debt assets
 # Run after 0a-setup.R and the original 2_do_full_matrices pipeline.
 # Uses the saved pre-Cayman intermediate temp_30.dta; does NOT overwrite original data.

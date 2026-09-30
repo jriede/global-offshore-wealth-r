@@ -1,7 +1,6 @@
 # ==============================================================================
-# Date: August 2023
-# Paper: Global Offshore Wealth, 2001-2021
-#
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # This program graphs country group shares of fiduciary deposits in
 # Swiss banks spanning 1987 to 2022.
 #

@@ -1,5 +1,6 @@
 # ==============================================================================
-# REPL: Global Offshore Wealth, 2001-2021
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # Title: 6d-replicate-offshore-location.R
 #
 # Purpose:

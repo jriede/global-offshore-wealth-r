@@ -1,3 +1,10 @@
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
+# Hilfsfunktion, liest FGZ-raw-data.xlsx ein, um nachher konsistent vergleichen 
+# zu können
+###########
+
 library(readxl)
 library(readr)
 library(purrr)

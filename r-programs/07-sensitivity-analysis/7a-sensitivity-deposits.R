@@ -1,3 +1,6 @@
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # 3.5.1 Sensitivity analysis: bank deposit share
 # Run after 0a-setup.R; uses its raw, work, fig, and tables paths.
 

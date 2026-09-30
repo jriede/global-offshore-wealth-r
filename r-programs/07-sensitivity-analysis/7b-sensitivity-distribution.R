@@ -1,3 +1,6 @@
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # 7b – Sensitivity of geographic allocation across non-Swiss tax havens
 # Input: raw CSV exports of FGZ-raw-data.xlsx, sheets T.A2 and T.A2b.
 # This is an allocation stress test, NOT a reconstruction of original BIS security holdings.

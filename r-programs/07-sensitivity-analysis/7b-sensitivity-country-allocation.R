@@ -1,3 +1,6 @@
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # 7b extension: propagate haven-location scenarios to owners' countries.
 # Run after 7b-sensitivity-distribution.R and 6a-build-offshore-01-22.R.
 # FGZ country ownership shares are held fixed; this is a counterfactual allocation test.

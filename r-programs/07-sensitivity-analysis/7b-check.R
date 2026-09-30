@@ -1,4 +1,7 @@
-# ------------------------
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
+#
 # addendum zu 7b
 # test, ob die Länderwerte der Baseline aus der Sensitivitätsanalyse (7b) mit
 # der ursprünglichen Replikation (aus 6b) übereinstimmen

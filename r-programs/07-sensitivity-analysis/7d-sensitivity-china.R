@@ -1,3 +1,6 @@
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # 7d: Sensitivity to China's assumed reserve portfolio share, 2001–2008
 # Run after sourcing 0a-setup.R. The baseline inputs are read, never overwritten.
 # Matrix units are inherited from the original replication data (USD millions).

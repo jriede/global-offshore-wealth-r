@@ -2,8 +2,22 @@ STATA to R port of the replication package for ("Global Offshore Wealth, 2001 - 
 
 # Prerequisites
 
-
 ## FGZ raw data
 You need the original repository, so download it first.
 
 Files from the FGZ repository are expected to be found in a separate folder in the parent directory (*../gow01-21* in our directory structure). You can change the directory name in the master setup file (*00-master/0a-setup.R*).
+
+## Libraries
+- fixest
+- dplyr
+- tidyr
+- haven
+- fixest
+- stringr
+- purrr
+- modelsummary
+- tibble
+- knitr
+- openxlsx
+- readxl
+- ggplot2

@@ -1,7 +1,7 @@
 # ==============================================================================
-# REPL: Global Offshore Wealth, 2001-2021
-# Title: 5c-build-swiss-offshore-wealth.R
-#
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
+
 # Purpose:
 #   Reconstruct Swiss offshore wealth from the underlying SNB source sheets
 #   contained in FGZ2023Data.xlsx, rather than importing the finished T.A10

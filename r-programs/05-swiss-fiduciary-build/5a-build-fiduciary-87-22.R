@@ -1,6 +1,6 @@
 # ==============================================================================
-# REPL: Global Offshore Wealth, 2001-2021
-#
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # This program constructs foreign owned time series of Swiss fiduciary deposits
 # spanning 1987 to 2022.
 #

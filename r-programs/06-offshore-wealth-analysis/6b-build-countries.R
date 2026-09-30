@@ -1,7 +1,6 @@
 # ==============================================================================
-# Date: October 2023
-# Paper: Global Offshore Wealth, 2001-2021
-#
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # This program builds a simpler dataset of each country's offshore wealth
 # in total, in haven groups (American, European, Asian and Swiss), and the
 # total wealth attracted by each haven.

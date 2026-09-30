@@ -1,7 +1,6 @@
 # ==============================================================================
-# Date: October 2023
-# Paper: Global Offshore Wealth, 2001-2021
-#
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # Translation of 6c-graph-offshore.do
 # ==============================================================================
 

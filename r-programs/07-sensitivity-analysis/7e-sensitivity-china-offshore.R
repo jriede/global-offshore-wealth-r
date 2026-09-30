@@ -1,3 +1,6 @@
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # 7e: Propagate China gap changes to the global offshore-wealth figure.
 # Run AFTER 7d-sensitivity-china.R and 0a-setup.R.
 # Uses FGZ T.A1's published global wealth, securities and deposits as the

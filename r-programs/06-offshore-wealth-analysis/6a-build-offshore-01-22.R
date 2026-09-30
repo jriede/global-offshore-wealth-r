@@ -1,7 +1,6 @@
 # ==============================================================================
-# Date: October 2023
-# Paper: Global Offshore Wealth, 2001-2021
-#
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # This program merges Swiss fiduciary and BIS bank deposits; constructs country
 # shares (using a 5-year smoothing method) and values of offshore wealth in
 # Switzerland and several haven groups.
