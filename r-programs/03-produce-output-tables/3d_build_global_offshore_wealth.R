@@ -1,6 +1,6 @@
 # ==============================================================================
-# REPL: Global Offshore Wealth, 2001-2021
-# Title: 3d_build_global_offshore_wealth.R
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 #
 # Purpose:
 #   Reconstruct the global offshore-wealth series underlying Figure 1 from

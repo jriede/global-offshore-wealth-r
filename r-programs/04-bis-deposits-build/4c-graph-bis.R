@@ -1,6 +1,6 @@
 # ==============================================================================
-# REPL: Global Offshore Wealth, 2001-2021
-#
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # R translation of: 4c-graph-bis.do
 #
 # This program graphs the evolution of BIS bank deposits in selected countries

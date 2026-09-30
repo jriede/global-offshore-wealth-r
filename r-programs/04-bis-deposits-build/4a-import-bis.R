@@ -1,6 +1,6 @@
 # ==============================================================================
-# REPL: Global Offshore Wealth, 2001-2021
-#
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # R translation of: 4a-import-bis.do
 #
 # This program imports and cleans BIS Locational Banking Statistics

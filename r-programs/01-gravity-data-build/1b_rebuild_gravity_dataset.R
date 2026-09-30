@@ -1,6 +1,6 @@
-# ------------------------------------------------------------------------------
-# Project: Offshore financial wealth database - update 2023
-# Title: 1b_rebuild_gravity_dataset.R
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # Purpose: reproduce and extend the dataset "data_gravity.dta"
 # ------------------------------------------------------------------------------
 

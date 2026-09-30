@@ -1,8 +1,7 @@
-# -----------------------------------------------------------------------------#
-# Project: Offshore financial wealth database - update 2023
-# Title: 3_do_table_A3.R
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # Purpose: produce TABLE A3
-# Translation of 3_do_table_A3.do from Stata to R
 # -----------------------------------------------------------------------------#
 
 library(dplyr)

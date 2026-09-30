@@ -1,8 +1,7 @@
-# ------------------------------------------------------------------------------
-# Project: Offshore financial wealth database - update 2023
-# Title: 1c_import_auxiliary_data.R
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # Purpose: import from different sources and formats
-# This version: translated from Stata
 # ------------------------------------------------------------------------------
 
 library(dplyr)

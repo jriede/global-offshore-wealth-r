@@ -1,8 +1,7 @@
-# ------------------------------------------------------------------------------
-# Project: Offshore financial wealth database - update 2023
-# jlenke, 2026-04-14
-# Purpose: import EWN-dataset_12-2022
-# This version: translated from Stata
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
+# Imports the EWN dataset
 # ------------------------------------------------------------------------------
 
 library(readxl)

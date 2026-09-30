@@ -1,6 +1,6 @@
 # ==============================================================================
-# REPL: Global Offshore Wealth, 2001-2021
-# jlenke, 2026-04-14
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 #
 # This master file runs all programs, create data in work folder and figures.
 #

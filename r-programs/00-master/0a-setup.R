@@ -1,10 +1,20 @@
 # ==============================================================================
-# REPL: Global Offshore Wealth, 2001-2021
-# jlenke, 2026-04-14
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 #
 # This program creates working directories macros necessary to run all programs.
 #
 #===============================================================================
+
+# TO DO: 
+# - libraries werden auch in den nachgelagerten Dateien immer wieder
+#   geladen, die könnte man hier auch alle zusammen reinstecken
+# - es liegt noch viel debug code herum aus der Tüftelzeit der Übersetzungen,
+#   müsste man in Ruhe putzen
+# - viele Output Tabellen vor allem in der Validationsphase werden auch in den
+#   R Dateien generiert, diese sind noch nciht rdentlich dokumentiert
+# - README.md im Repo erweitern, das ist noch etwas schmalbrüstig
+
 
 # ------------------------------ PATHS -----------------------------------------
 
@@ -88,6 +98,13 @@ replication_metrics <- function(original, replicated) {
 }
 
 # -----
+# Untenstehend braucht man nur einmalig wenn man die Zucman Dateien lädt
+# Danach löscht das STATA Original die zip files, das ist nicht sinnvoll, falls
+# man nochmal von vorne anfangen muss (wie ich *sehr* oft)
+# deswegen auskommentiert, folt aber eigenbtlich so der Stata Logik
+#------
+
+
 
 # ----------------------- EXTRACT ZIPPED DATA FILE -----------------------------
 

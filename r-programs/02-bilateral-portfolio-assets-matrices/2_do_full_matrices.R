@@ -1,7 +1,8 @@
-# -----------------------------------------------------------------------------#
-# Project: Offshore financial wealth database - update 2023
-# Title:   2_do_full_matrices.R
+# ==============================================================================
+# REPL: Global Offshore Wealth Using R, 2001-2021
+# jlenke, 2026
 # Purpose: Construct exhaustive bilateral portfolio asset matrices
+# Der Endgegner
 # -----------------------------------------------------------------------------#
 
 library(dplyr)
